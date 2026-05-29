@@ -185,6 +185,9 @@ func (c *Client) handleMessage(evt *events.Message) {
 	}
 
 	chatJID := evt.Info.Chat.String()
+	if evt.Info.Chat.Server == types.BroadcastServer {
+		return
+	}
 	senderJID := evt.Info.Sender.String()
 	isGroup := evt.Info.Chat.Server == types.GroupServer
 	isFromMe := evt.Info.IsFromMe
