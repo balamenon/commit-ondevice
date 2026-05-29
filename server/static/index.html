@@ -1,0 +1,2179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Owe</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Newsreader:wght@400;500;600&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --canvas: #f5f6f8;
+            --surface: #ffffff;
+            --surface-sunken: #eceef2;
+            --ink: #1a1f25;
+            --ink-secondary: #444b55;
+            --ink-tertiary: #6e7681;
+            --ink-faint: #9ea7b3;
+            --line: #c8ced6;
+            --line-strong: #b0b8c2;
+            --accent: #1a1f25;
+            --accent-light: #e8ebf0;
+            --growth: #1a6b3a;
+            --growth-light: #dceee2;
+            --warning: #9a7d3a;
+            --warning-light: #f0ead8;
+            --danger: #a12535;
+            --info: #2d5f82;
+            --info-light: #dde9f2;
+            --font-display: 'Newsreader', Georgia, serif;
+            --font-body: 'Public Sans', -apple-system, sans-serif;
+            --radius-sm: 4px;
+            --radius-md: 8px;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+            --shadow-md: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        [data-theme="dark"] {
+            --canvas: #08090a;
+            --surface: #141516;
+            --surface-sunken: #0f1011;
+            --ink: #f7f8f8;
+            --ink-secondary: #8a8f98;
+            --ink-tertiary: #62666d;
+            --ink-faint: #3e4046;
+            --line: #23252a;
+            --line-strong: #34343a;
+            --accent: #AF9358;
+            --accent-light: #1e1a14;
+            --growth: #26B5CE;
+            --growth-light: #0d2b30;
+            --warning: #F0BF00;
+            --warning-light: #2b2400;
+            --danger: #EB5757;
+            --info: #AF9358;
+            --info-light: #1e1a14;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: var(--font-body);
+            background: var(--canvas);
+            color: var(--ink);
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .hidden { display: none !important; }
+
+        /* ── Screen system ── */
+        .screen { display: none; flex-direction: column; flex: 1; overflow: hidden; }
+        .screen.active { display: flex; }
+
+        /* ══════════════════════════════════════
+           SCREEN 1: Setup / API Key
+           ══════════════════════════════════════ */
+        .setup-screen {
+            justify-content: center;
+            align-items: center;
+            padding: 40px 20px;
+        }
+
+        .setup-container {
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .setup-logo {
+            font-family: var(--font-display);
+            font-size: 32px;
+            font-weight: 400;
+            color: var(--ink);
+            margin-bottom: 6px;
+            letter-spacing: -0.02em;
+        }
+
+        .setup-tagline {
+            font-size: 13px;
+            color: var(--ink-tertiary);
+            margin-bottom: 40px;
+        }
+
+        .setup-card {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: var(--radius-md);
+            padding: 32px 28px;
+            text-align: left;
+        }
+
+        .setup-step-label {
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--ink-tertiary);
+            margin-bottom: 8px;
+        }
+
+        .setup-step-title {
+            font-family: var(--font-display);
+            font-size: 18px;
+            font-weight: 400;
+            color: var(--ink);
+            margin-bottom: 6px;
+        }
+
+        .setup-step-desc {
+            font-size: 13px;
+            color: var(--ink-secondary);
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .setup-input {
+            width: 100%;
+            padding: 10px 14px;
+            font-family: var(--font-body);
+            font-size: 13px;
+            border: 1px solid var(--line);
+            border-radius: var(--radius-sm);
+            background: var(--surface-sunken);
+            color: var(--ink);
+            outline: none;
+            transition: border-color 0.15s;
+        }
+
+        .setup-input:focus {
+            border-color: var(--accent);
+        }
+
+        .setup-input::placeholder {
+            color: var(--ink-faint);
+        }
+
+        .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 9px 20px;
+            font-family: var(--font-body);
+            font-size: 13px;
+            font-weight: 500;
+            background: var(--ink);
+            color: var(--canvas);
+            border: none;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: opacity 0.15s;
+            width: 100%;
+            margin-top: 14px;
+        }
+
+        .btn-primary:hover { opacity: 0.85; }
+
+        .setup-note {
+            font-size: 11px;
+            color: var(--ink-faint);
+            margin-top: 12px;
+            line-height: 1.5;
+        }
+
+        .setup-note a {
+            color: var(--ink-secondary);
+            text-decoration: underline;
+        }
+
+        /* ══════════════════════════════════════
+           SCREEN 2: QR Code Login
+           ══════════════════════════════════════ */
+        .qr-screen {
+            justify-content: center;
+            align-items: center;
+            padding: 40px 20px;
+        }
+
+        .qr-container {
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .qr-card {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: var(--radius-md);
+            padding: 40px 28px;
+        }
+
+        .qr-step-label {
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--ink-tertiary);
+            margin-bottom: 8px;
+        }
+
+        .qr-title {
+            font-family: var(--font-display);
+            font-size: 18px;
+            font-weight: 400;
+            color: var(--ink);
+            margin-bottom: 6px;
+        }
+
+        .qr-desc {
+            font-size: 13px;
+            color: var(--ink-secondary);
+            margin-bottom: 28px;
+            line-height: 1.5;
+        }
+
+        .qr-box {
+            width: 220px;
+            height: 220px;
+            margin: 0 auto 24px;
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .qr-placeholder {
+            width: 180px;
+            height: 180px;
+            display: grid;
+            grid-template-columns: repeat(15, 1fr);
+            grid-template-rows: repeat(15, 1fr);
+            gap: 1px;
+        }
+
+        .qr-placeholder .qr-cell {
+            border-radius: 1px;
+        }
+
+        .qr-placeholder .qr-cell.on {
+            background: var(--ink);
+        }
+
+        .qr-placeholder .qr-cell.off {
+            background: transparent;
+        }
+
+        .qr-instructions {
+            text-align: left;
+            margin-top: 8px;
+        }
+
+        .qr-instructions ol {
+            list-style: none;
+            counter-reset: steps;
+        }
+
+        .qr-instructions li {
+            counter-increment: steps;
+            font-size: 12px;
+            color: var(--ink-secondary);
+            line-height: 1.6;
+            padding: 4px 0;
+            display: flex;
+            gap: 8px;
+        }
+
+        .qr-instructions li::before {
+            content: counter(steps);
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--ink-tertiary);
+            background: var(--surface-sunken);
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        /* ══════════════════════════════════════
+           SCREEN 3: Connecting state
+           ══════════════════════════════════════ */
+        .connecting-screen {
+            justify-content: center;
+            align-items: center;
+            padding: 40px 20px;
+        }
+
+        .connecting-container {
+            text-align: center;
+            max-width: 360px;
+        }
+
+        .connecting-spinner {
+            width: 32px;
+            height: 32px;
+            border: 2px solid var(--line);
+            border-top-color: var(--ink);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .connecting-title {
+            font-family: var(--font-display);
+            font-size: 18px;
+            font-weight: 400;
+            color: var(--ink);
+            margin-bottom: 6px;
+        }
+
+        .connecting-desc {
+            font-size: 13px;
+            color: var(--ink-secondary);
+            line-height: 1.5;
+        }
+
+        /* ══════════════════════════════════════
+           SCREEN 4: Main Dashboard
+           ══════════════════════════════════════ */
+        .main-screen {
+            overflow: hidden;
+        }
+
+        /* Top bar */
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 24px;
+            border-bottom: 1px solid var(--line);
+            background: var(--surface);
+            flex-shrink: 0;
+        }
+
+        .topbar-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .topbar-logo {
+            font-family: var(--font-display);
+            font-size: 17px;
+            font-weight: 400;
+            color: var(--ink);
+            letter-spacing: -0.01em;
+        }
+
+        .topbar-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            color: var(--ink-tertiary);
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--growth);
+        }
+
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .topbar-btn {
+            background: none;
+            border: 1px solid var(--line);
+            border-radius: var(--radius-sm);
+            padding: 6px 10px;
+            font-size: 12px;
+            font-family: var(--font-body);
+            color: var(--ink-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.15s;
+        }
+
+        .topbar-btn:hover {
+            border-color: var(--ink-tertiary);
+            color: var(--ink);
+        }
+
+        .topbar-btn svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        /* Search */
+        .search-bar-container {
+            padding: 16px 0 0;
+            max-width: 852px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .search-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 14px;
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: var(--radius-md);
+            transition: border-color 0.15s;
+        }
+
+        .search-bar:focus-within {
+            border-color: var(--accent);
+        }
+
+        .search-bar svg {
+            width: 15px;
+            height: 15px;
+            color: var(--ink-faint);
+            flex-shrink: 0;
+        }
+
+        .search-bar input {
+            flex: 1;
+            border: none;
+            background: none;
+            font-family: var(--font-body);
+            font-size: 13px;
+            color: var(--ink);
+            outline: none;
+        }
+
+        .search-bar input::placeholder {
+            color: var(--ink-faint);
+        }
+
+        .search-bar .search-shortcut {
+            font-size: 10px;
+            color: var(--ink-faint);
+            background: var(--surface-sunken);
+            padding: 2px 6px;
+            border-radius: 3px;
+            border: 1px solid var(--line);
+        }
+
+        /* Tabs */
+        .tab-bar {
+            display: flex;
+            gap: 0;
+            padding: 0;
+            max-width: 852px;
+            margin: 16px auto 0;
+            width: 100%;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .tab {
+            padding: 10px 16px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--ink-tertiary);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            position: relative;
+            bottom: -1px;
+            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: none;
+            border-top: none;
+            border-left: none;
+            border-right: none;
+            font-family: var(--font-body);
+        }
+
+        .tab:hover { color: var(--ink-secondary); }
+
+        .tab.active {
+            color: var(--ink);
+            border-bottom-color: var(--ink);
+            font-weight: 600;
+        }
+
+        .tab .tab-count {
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--ink-tertiary);
+            background: var(--surface-sunken);
+            padding: 1px 7px;
+            border-radius: 8px;
+        }
+
+        .tab.active .tab-count {
+            background: var(--ink);
+            color: var(--canvas);
+        }
+
+        /* Summary bar */
+        .summary-bar {
+            display: flex;
+            gap: 24px;
+            padding: 14px 0;
+            max-width: 852px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .summary-stat {
+            display: flex;
+            align-items: baseline;
+            gap: 6px;
+        }
+
+        .summary-stat .stat-value {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--ink);
+        }
+
+        .summary-stat .stat-label {
+            font-size: 11px;
+            color: var(--ink-tertiary);
+        }
+
+        .summary-divider {
+            width: 1px;
+            background: var(--line);
+        }
+
+        /* Content area */
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0 0 80px;
+        }
+
+        .content-inner {
+            max-width: 852px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        /* Group headers */
+        .group-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 0 10px;
+        }
+
+        .group-header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .group-avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--surface-sunken);
+            border: 1px solid var(--line);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--ink-secondary);
+        }
+
+        .group-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--ink);
+        }
+
+        .group-meta {
+            font-size: 11px;
+            color: var(--ink-tertiary);
+            margin-left: 4px;
+        }
+
+        .group-header-right {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .group-badge {
+            font-size: 11px;
+            font-weight: 500;
+            padding: 2px 8px;
+            border-radius: 8px;
+        }
+
+        .group-badge.owe {
+            color: var(--danger);
+            background: #f4e4e6;
+        }
+
+        .group-badge.owed {
+            color: var(--growth);
+            background: var(--growth-light);
+        }
+
+        [data-theme="dark"] .group-badge.owe {
+            background: #2d1519;
+        }
+
+        [data-theme="dark"] .group-badge.owed {
+            background: var(--growth-light);
+        }
+
+        /* Commitment cards */
+        .commitment-card {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 0;
+            padding: 14px 18px;
+            margin-bottom: 6px;
+            transition: all 0.15s;
+            position: relative;
+        }
+
+        .commitment-card:first-of-type {
+            border-radius: var(--radius-md) var(--radius-md) 0 0;
+        }
+
+        .commitment-card:last-of-type {
+            border-radius: 0 0 var(--radius-md) var(--radius-md);
+            margin-bottom: 0;
+        }
+
+        .commitment-card:only-of-type {
+            border-radius: var(--radius-md);
+        }
+
+        .commitment-card + .commitment-card {
+            border-top: none;
+        }
+
+        .commitment-card:hover {
+            border-color: var(--ink-tertiary);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .commitment-top {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .commitment-direction {
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            padding: 2px 8px;
+            border-radius: 3px;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .commitment-direction.you-owe {
+            color: var(--danger);
+            background: #f4e4e6;
+        }
+
+        .commitment-direction.they-owe {
+            color: var(--growth);
+            background: var(--growth-light);
+        }
+
+        [data-theme="dark"] .commitment-direction.you-owe {
+            background: #2d1519;
+        }
+
+        [data-theme="dark"] .commitment-direction.they-owe {
+            background: var(--growth-light);
+        }
+
+        .commitment-body {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .commitment-title {
+            font-size: 13.5px;
+            font-weight: 500;
+            color: var(--ink);
+            line-height: 1.5;
+            margin-bottom: 4px;
+        }
+
+        .commitment-context {
+            font-size: 12px;
+            color: var(--ink-secondary);
+            line-height: 1.5;
+            margin-bottom: 8px;
+        }
+
+        .commitment-source {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            color: var(--ink-tertiary);
+            padding: 6px 10px;
+            background: var(--surface-sunken);
+            border-radius: var(--radius-sm);
+            margin-top: 8px;
+            line-height: 1.4;
+        }
+
+        .commitment-source svg {
+            width: 12px;
+            height: 12px;
+            flex-shrink: 0;
+            color: var(--ink-faint);
+        }
+
+        .commitment-source .source-text {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .commitment-source .source-quote {
+            font-style: italic;
+            color: var(--ink-secondary);
+        }
+
+        .commitment-source .source-time {
+            color: var(--ink-faint);
+            margin-left: 4px;
+            white-space: nowrap;
+        }
+
+        .commitment-actions {
+            opacity: 0;
+            transition: opacity 0.15s;
+            display: flex;
+            gap: 4px;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .commitment-card:hover .commitment-actions {
+            opacity: 1;
+        }
+
+        .favorite-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 2px;
+            color: var(--ink-faint);
+            transition: all 0.15s;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .favorite-btn:hover { color: var(--warning); }
+
+        .favorite-btn.active {
+            color: var(--warning);
+            opacity: 1;
+        }
+
+        .favorite-btn svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .commitment-card:not(:hover) .favorite-btn:not(.active) {
+            opacity: 0;
+        }
+
+        .group-fav-btn {
+            opacity: 0;
+            margin-left: -4px;
+        }
+
+        .group-header:hover .group-fav-btn,
+        .group-fav-btn.active {
+            opacity: 1;
+        }
+
+        .resolved-section {
+            margin-top: 32px;
+            padding-top: 24px;
+            border-top: 1px solid var(--line);
+        }
+
+        .resolved-section-header {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--ink-tertiary);
+            margin-bottom: 16px;
+        }
+
+        .resolved-card {
+            opacity: 0.7;
+        }
+
+        .commitment-status-badge {
+            font-size: 10px;
+            font-weight: 500;
+            text-transform: capitalize;
+            color: var(--ink-tertiary);
+            background: var(--surface-sunken);
+            padding: 1px 7px;
+            border-radius: 3px;
+        }
+
+        .commitment-age {
+            font-size: 11px;
+            color: var(--ink-tertiary);
+        }
+
+        .commitment-age.stale {
+            color: var(--warning);
+        }
+
+        .commitment-age.overdue {
+            color: var(--danger);
+            font-weight: 500;
+        }
+
+        .followup-filter-bar {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 16px;
+        }
+
+        .followup-filter {
+            font-family: var(--font-body);
+            font-size: 12px;
+            font-weight: 500;
+            padding: 5px 12px;
+            border-radius: 20px;
+            border: 1px solid var(--line);
+            background: var(--surface);
+            color: var(--ink-tertiary);
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .followup-filter:hover {
+            border-color: var(--ink-tertiary);
+            color: var(--ink-secondary);
+        }
+
+        .followup-filter.active {
+            background: var(--ink);
+            color: var(--surface);
+            border-color: var(--ink);
+        }
+
+        .followup-actions {
+            opacity: 1 !important;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid var(--line);
+        }
+
+        .nudge-area {
+            margin-top: 10px;
+            border-top: 1px solid var(--line);
+            padding-top: 10px;
+        }
+
+        .nudge-preview textarea {
+            width: 100%;
+        }
+
+        .auto-resolved-badge {
+            font-size: 10px;
+            font-weight: 500;
+            color: var(--info);
+            background: var(--info-light);
+            padding: 1px 7px;
+            border-radius: 3px;
+        }
+
+        .reply-area {
+            margin-top: 10px;
+            border-top: 1px solid var(--line);
+            padding-top: 10px;
+        }
+
+        .reply-input-row {
+            display: flex;
+            gap: 8px;
+            align-items: flex-end;
+        }
+
+        .reply-input {
+            flex: 1;
+            padding: 8px 12px;
+            font-family: var(--font-body);
+            font-size: 13px;
+            border: 1px solid var(--line);
+            border-radius: var(--radius-sm);
+            background: var(--surface-sunken);
+            color: var(--ink);
+            outline: none;
+            resize: none;
+            min-height: 36px;
+            max-height: 80px;
+            line-height: 1.4;
+        }
+
+        .reply-input:focus {
+            border-color: var(--accent);
+        }
+
+        .reply-input::placeholder {
+            color: var(--ink-faint);
+        }
+
+        .reply-send-btn {
+            padding: 8px 14px;
+            font-family: var(--font-body);
+            font-size: 12px;
+            font-weight: 500;
+            background: var(--ink);
+            color: var(--canvas);
+            border: none;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: opacity 0.15s;
+            white-space: nowrap;
+        }
+
+        .reply-send-btn:hover { opacity: 0.85; }
+
+        .reply-send-btn:disabled {
+            opacity: 0.4;
+            cursor: default;
+        }
+
+        .reply-sent {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px;
+            background: var(--growth-light);
+            border-radius: var(--radius-sm);
+            font-size: 12px;
+            color: var(--growth);
+        }
+
+        .reply-sent-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .reply-sent-actions button {
+            background: none;
+            border: none;
+            font-family: var(--font-body);
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            padding: 2px 8px;
+            border-radius: var(--radius-sm);
+            transition: all 0.15s;
+        }
+
+        .reply-done-btn {
+            color: var(--growth);
+            border: 1px solid var(--growth) !important;
+        }
+
+        .reply-done-btn:hover { background: var(--growth); color: var(--canvas); }
+
+        .reply-dismiss-btn {
+            color: var(--ink-tertiary);
+        }
+
+        .reply-dismiss-btn:hover { color: var(--ink); }
+
+        .action-btn {
+            background: none;
+            border: 1px solid var(--line);
+            border-radius: var(--radius-sm);
+            padding: 4px 8px;
+            font-size: 11px;
+            font-family: var(--font-body);
+            color: var(--ink-tertiary);
+            cursor: pointer;
+            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .action-btn:hover {
+            border-color: var(--ink-tertiary);
+            color: var(--ink-secondary);
+        }
+
+        .action-btn.done:hover {
+            border-color: var(--growth);
+            color: var(--growth);
+        }
+
+        .commitment-meta {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 6px;
+        }
+
+        .commitment-date {
+            font-size: 11px;
+            color: var(--ink-faint);
+        }
+
+        .commitment-age {
+            font-size: 11px;
+            color: var(--ink-faint);
+        }
+
+        .commitment-age.overdue {
+            color: var(--danger);
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .empty-state-icon {
+            font-size: 32px;
+            color: var(--ink-faint);
+            margin-bottom: 12px;
+        }
+
+        .empty-state-title {
+            font-family: var(--font-display);
+            font-size: 16px;
+            color: var(--ink);
+            margin-bottom: 6px;
+        }
+
+        .empty-state-desc {
+            font-size: 13px;
+            color: var(--ink-tertiary);
+            line-height: 1.5;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 12px;
+            font-size: 10px;
+            color: var(--ink-faint);
+            letter-spacing: 0.03em;
+            border-top: 1px solid var(--line);
+            background: var(--surface);
+            flex-shrink: 0;
+        }
+
+        /* ══════════════════════════════════════
+           SCREEN 5: Settings overlay
+           ══════════════════════════════════════ */
+        .settings-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.35);
+            z-index: 100;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .settings-overlay.active {
+            display: flex;
+        }
+
+        .settings-panel {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: var(--radius-md);
+            width: 480px;
+            max-height: 80vh;
+            overflow-y: auto;
+            padding: 28px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+        }
+
+        .settings-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+
+        .settings-title {
+            font-family: var(--font-display);
+            font-size: 18px;
+            font-weight: 400;
+        }
+
+        .settings-close {
+            background: none;
+            border: none;
+            font-size: 18px;
+            color: var(--ink-tertiary);
+            cursor: pointer;
+            padding: 4px;
+        }
+
+        .settings-close:hover { color: var(--ink); }
+
+        .settings-group {
+            margin-bottom: 24px;
+        }
+
+        .settings-group-title {
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--ink-tertiary);
+            margin-bottom: 10px;
+        }
+
+        .settings-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .settings-row:last-child { border-bottom: none; }
+
+        .settings-row-label {
+            font-size: 13px;
+            color: var(--ink);
+        }
+
+        .settings-row-value {
+            font-size: 12px;
+            color: var(--ink-tertiary);
+            font-family: monospace;
+        }
+
+        /* Responsive */
+        @media (max-width: 640px) {
+            .topbar { padding: 10px 16px; }
+            .topbar-left { gap: 8px; }
+            .topbar-status span:last-child { display: none; }
+            .topbar-right { gap: 6px; }
+            .topbar-btn { padding: 5px 8px; font-size: 11px; }
+            .search-bar-container { padding: 12px 16px 0; max-width: 100%; }
+            .tab-bar { padding: 0 16px; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+            .tab-bar::-webkit-scrollbar { display: none; }
+            .tab { padding: 10px 10px; font-size: 12px; white-space: nowrap; flex-shrink: 0; }
+            .summary-bar { padding: 12px 16px; gap: 16px; max-width: 100%; }
+            .content { padding: 0 0 80px; }
+            .content-inner { padding: 0 16px; max-width: 100%; }
+            .commitment-source { display: none; }
+            .summary-stat .stat-value { font-size: 16px; }
+            .commitment-card { padding: 12px 14px; }
+            .commitment-top { flex-wrap: wrap; }
+            .commitment-body { width: 100%; }
+            .commitment-actions {
+                opacity: 1;
+                width: 100%;
+                margin-top: 10px;
+                padding-top: 8px;
+                border-top: 1px solid var(--line);
+                gap: 8px;
+            }
+            .commitment-actions .action-btn { flex: 1; justify-content: center; }
+            .favorite-btn { position: absolute; top: 12px; right: 14px; opacity: 1 !important; }
+            .commitment-card:not(:hover) .favorite-btn:not(.active) { opacity: 1; }
+            .group-fav-btn { opacity: 1; position: static; }
+        }
+
+        /* Smooth transitions for screen changes */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .screen.active {
+            animation: fadeIn 0.3s ease-out;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ══════ SCREEN 0: Lock Screen ══════ -->
+    <div class="screen setup-screen" id="screen-lock">
+        <div class="setup-container">
+            <div class="setup-logo">Owe</div>
+            <div class="setup-tagline">Track promises. Keep your word.</div>
+            <div class="setup-card">
+                <div class="setup-step-title" id="lock-title">Enter Passcode</div>
+                <div class="setup-step-desc" id="lock-desc">Enter your passcode to unlock Owe.</div>
+                <input type="password" class="setup-input" id="lock-input" placeholder="Passcode" />
+                <button class="btn-primary" id="lock-btn">
+                    Unlock
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                </button>
+                <div class="setup-note" id="lock-error" style="color: var(--danger); display: none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════ SCREEN 0b: Set Passcode (first time) ══════ -->
+    <div class="screen setup-screen" id="screen-set-passcode">
+        <div class="setup-container">
+            <div class="setup-logo">Owe</div>
+            <div class="setup-tagline">Track promises. Keep your word.</div>
+            <div class="setup-card">
+                <div class="setup-step-title">Set a Passcode</div>
+                <div class="setup-step-desc">
+                    Protect your data with a passcode. This encrypts your API key and secures the web interface.
+                </div>
+                <input type="password" class="setup-input" id="passcode-input" placeholder="Choose a passcode (4+ characters)" />
+                <input type="password" class="setup-input" id="passcode-confirm" placeholder="Confirm passcode" style="margin-top: 8px;" />
+                <button class="btn-primary" id="passcode-btn">
+                    Set Passcode
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                </button>
+                <div class="setup-note" id="passcode-error" style="color: var(--danger); display: none;"></div>
+                <div class="setup-note">
+                    <a href="#" id="skip-passcode" style="color: var(--ink-tertiary);">Skip for now</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════ SCREEN 1: API Key Setup ══════ -->
+    <div class="screen setup-screen" id="screen-setup">
+        <div class="setup-container">
+            <div class="setup-logo">Owe</div>
+            <div class="setup-tagline">Track promises. Keep your word.</div>
+            <div class="setup-card">
+                <div class="setup-step-label">Step 1 of 2</div>
+                <div class="setup-step-title">Claude API Key</div>
+                <div class="setup-step-desc">
+                    Owe uses Claude to understand your conversations and extract commitments. Your key stays local — nothing leaves your machine except API calls.
+                </div>
+                <input type="password" class="setup-input" id="api-key-input" placeholder="sk-ant-api03-..." />
+                <button class="btn-primary" id="setup-btn">
+                    Continue
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                </button>
+                <div class="setup-note">
+                    Get your key from <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a>. It's stored locally and never shared.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════ SCREEN 2: QR Code ══════ -->
+    <div class="screen qr-screen" id="screen-qr">
+        <div class="qr-container">
+            <div class="setup-logo">Owe</div>
+            <div class="setup-tagline">Track promises. Keep your word.</div>
+            <div class="qr-card">
+                <div class="qr-step-label">Step 2 of 2</div>
+                <div class="qr-title">Connect WhatsApp</div>
+                <div class="qr-desc">Scan this code with your phone to link Owe to your WhatsApp account.</div>
+                <div class="qr-box" id="qr-display">
+                    <div class="connecting-spinner"></div>
+                </div>
+                <div class="qr-instructions">
+                    <ol>
+                        <li>Open WhatsApp on your phone</li>
+                        <li>Go to Settings, then Linked Devices</li>
+                        <li>Tap Link a Device and scan the code above</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════ SCREEN 3: Connecting ══════ -->
+    <div class="screen connecting-screen" id="screen-connecting">
+        <div class="connecting-container">
+            <div class="setup-logo" style="margin-bottom: 32px;">Commit</div>
+            <div class="connecting-spinner"></div>
+            <div class="connecting-title">Connecting to WhatsApp</div>
+            <div class="connecting-desc">Syncing your conversations and starting to listen for commitments. This usually takes a few seconds.</div>
+        </div>
+    </div>
+
+    <!-- ══════ SCREEN 4: Main Dashboard ══════ -->
+    <div class="screen main-screen" id="screen-main">
+        <div class="topbar">
+            <div class="topbar-left">
+                <div class="topbar-logo">Owe</div>
+                <div class="topbar-status">
+                    <div class="status-dot"></div>
+                    <span id="connection-status">Connected</span>
+                </div>
+            </div>
+            <div class="topbar-right">
+                <button class="topbar-btn" onclick="toggleTheme()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+                </button>
+                <button class="topbar-btn" onclick="openSettings()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+                    Settings
+                </button>
+            </div>
+        </div>
+
+        <div class="search-bar-container">
+            <div class="search-bar">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                <input type="text" id="search-input" placeholder="Search commitments, people, or groups..." oninput="handleSearch()" />
+                <span class="search-shortcut">/</span>
+            </div>
+        </div>
+
+        <div class="tab-bar">
+            <button class="tab active" onclick="switchTab('all', this)">All <span class="tab-count" id="count-all">0</span></button>
+            <button class="tab" onclick="switchTab('followups', this)">Follow ups <span class="tab-count" id="count-followups">0</span></button>
+            <button class="tab" onclick="switchTab('favorites', this)">Favorites <span class="tab-count" id="count-favorites">0</span></button>
+            <button class="tab" onclick="switchTab('you_owe', this)">I owe <span class="tab-count" id="count-you-owe">0</span></button>
+            <button class="tab" onclick="switchTab('they_owe', this)">They owe <span class="tab-count" id="count-they-owe">0</span></button>
+            <button class="tab" onclick="switchTab('resolved', this)">Resolved <span class="tab-count" id="count-resolved">0</span></button>
+        </div>
+
+        <div class="summary-bar">
+            <div class="summary-stat"><span class="stat-value" id="stat-open">0</span><span class="stat-label">open</span></div>
+            <div class="summary-divider"></div>
+            <div class="summary-stat"><span class="stat-value" id="stat-you-owe">0</span><span class="stat-label">you owe</span></div>
+            <div class="summary-divider"></div>
+            <div class="summary-stat"><span class="stat-value" id="stat-they-owe">0</span><span class="stat-label">they owe</span></div>
+        </div>
+
+        <div class="content">
+            <div class="content-inner" id="commitments-container"></div>
+        </div>
+
+        <div class="footer">by MS Foundry</div>
+    </div>
+
+    <!-- ══════ Settings Overlay ══════ -->
+    <div class="settings-overlay" id="settings-overlay" onclick="if(event.target===this)closeSettings()">
+        <div class="settings-panel">
+            <div class="settings-header">
+                <div class="settings-title">Settings</div>
+                <button class="settings-close" onclick="closeSettings()">&times;</button>
+            </div>
+            <div class="settings-group">
+                <div class="settings-group-title">Scanning</div>
+                <div class="settings-row">
+                    <span class="settings-row-label">Messages processed</span>
+                    <span class="settings-row-value" id="settings-msgs">0</span>
+                </div>
+                <div class="settings-row">
+                    <span class="settings-row-label">Commitments found</span>
+                    <span class="settings-row-value" id="settings-commitments">0</span>
+                </div>
+            </div>
+            <div class="settings-group">
+                <div class="settings-group-title">Bot Commands</div>
+                <div class="settings-row" style="flex-direction: column; align-items: flex-start; gap: 8px;">
+                    <span class="settings-row-label">Message yourself on WhatsApp</span>
+                    <div style="font-size: 12px; color: var(--ink-tertiary); line-height: 1.8;">
+                        <code style="background: var(--surface-sunken); padding: 1px 6px; border-radius: 3px; font-size: 11px;">commitments</code> — list open commitments<br>
+                        <code style="background: var(--surface-sunken); padding: 1px 6px; border-radius: 3px; font-size: 11px;">owe @person</code> — what you owe someone<br>
+                        <code style="background: var(--surface-sunken); padding: 1px 6px; border-radius: 3px; font-size: 11px;">done &lt;text&gt;</code> — mark commitment resolved<br>
+                        <code style="background: var(--surface-sunken); padding: 1px 6px; border-radius: 3px; font-size: 11px;">search &lt;query&gt;</code> — find commitments
+                    </div>
+                </div>
+            </div>
+            <div class="settings-group">
+                <div class="settings-group-title">Account</div>
+                <div class="settings-row">
+                    <span class="settings-row-label">Disconnect WhatsApp</span>
+                    <button class="topbar-btn" onclick="logout()" style="color: var(--danger); border-color: var(--danger);">Logout</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API = '';
+        let currentTab = 'all';
+        let allGroups = [];
+        let favChats = {};
+        let isSearching = false;
+
+        // ── API helpers ──
+        async function api(path, opts) {
+            const res = await fetch(API + path, opts);
+            if (res.status === 401 && !path.startsWith('/api/auth/')) {
+                goToScreen('screen-lock');
+                document.getElementById('lock-input').focus();
+                throw new Error('session expired');
+            }
+            if (!res.ok) throw new Error(await res.text());
+            return res.json();
+        }
+
+        // ── Screen navigation ──
+        function goToScreen(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
+
+        // ── Init: check auth then status ──
+        async function init() {
+            try {
+                const auth = await api('/api/auth/check');
+                if (auth.has_passcode && !auth.authenticated) {
+                    goToScreen('screen-lock');
+                    document.getElementById('lock-input').focus();
+                    return;
+                }
+                await routeToApp();
+            } catch {
+                goToScreen('screen-setup');
+            }
+        }
+
+        async function routeToApp() {
+            const status = await api('/api/status');
+            if (status.state === 'ready') {
+                goToScreen('screen-main');
+                loadDashboard();
+            } else if (status.state === 'needs_login' || status.state === 'connecting') {
+                goToScreen('screen-qr');
+                startQRLogin();
+            } else {
+                goToScreen('screen-setup');
+            }
+        }
+
+        // ── Auth: unlock ──
+        document.getElementById('lock-btn').addEventListener('click', submitUnlock);
+        document.getElementById('lock-input').addEventListener('keydown', e => { if (e.key === 'Enter') submitUnlock(); });
+
+        async function submitUnlock() {
+            const input = document.getElementById('lock-input');
+            const err = document.getElementById('lock-error');
+            const passcode = input.value;
+            if (!passcode) return;
+            try {
+                await api('/api/auth/login', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({passcode})
+                });
+                err.style.display = 'none';
+                input.value = '';
+                await routeToApp();
+            } catch {
+                err.textContent = 'Wrong passcode';
+                err.style.display = 'block';
+                input.value = '';
+                input.focus();
+            }
+        }
+
+        // ── Auth: set passcode (first time) ──
+        document.getElementById('passcode-btn').addEventListener('click', submitSetPasscode);
+        document.getElementById('passcode-confirm').addEventListener('keydown', e => { if (e.key === 'Enter') submitSetPasscode(); });
+        document.getElementById('skip-passcode').addEventListener('click', async (e) => {
+            e.preventDefault();
+            goToScreen('screen-qr');
+            startQRLogin();
+        });
+
+        async function submitSetPasscode() {
+            const input = document.getElementById('passcode-input');
+            const confirm = document.getElementById('passcode-confirm');
+            const err = document.getElementById('passcode-error');
+            const passcode = input.value;
+            const confirmed = confirm.value;
+
+            if (passcode.length < 4) {
+                err.textContent = 'Passcode must be at least 4 characters';
+                err.style.display = 'block';
+                input.focus();
+                return;
+            }
+            if (passcode !== confirmed) {
+                err.textContent = 'Passcodes do not match';
+                err.style.display = 'block';
+                confirm.value = '';
+                confirm.focus();
+                return;
+            }
+            try {
+                await api('/api/auth/setup', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({passcode})
+                });
+                err.style.display = 'none';
+                goToScreen('screen-qr');
+                startQRLogin();
+            } catch (e) {
+                err.textContent = 'Failed to set passcode';
+                err.style.display = 'block';
+            }
+        }
+
+        // ── Setup: save API key ──
+        document.getElementById('setup-btn').addEventListener('click', async () => {
+            const key = document.getElementById('api-key-input').value.trim();
+            if (!key) return;
+            try {
+                await api('/api/setup', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({api_key: key})
+                });
+                const auth = await api('/api/auth/check');
+                if (!auth.has_passcode) {
+                    goToScreen('screen-set-passcode');
+                    document.getElementById('passcode-input').focus();
+                } else {
+                    goToScreen('screen-qr');
+                    startQRLogin();
+                }
+            } catch (e) {
+                alert('Failed to save key: ' + e.message);
+            }
+        });
+
+        // ── QR login via SSE ──
+        function startQRLogin() {
+            const display = document.getElementById('qr-display');
+            const evtSource = new EventSource('/api/login/qr');
+            evtSource.onmessage = (e) => {
+                const data = JSON.parse(e.data);
+                if (data.qr) {
+                    display.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(data.qr)}" width="200" height="200" style="border-radius: 4px;" />`;
+                } else if (data.connected) {
+                    evtSource.close();
+                    goToScreen('screen-connecting');
+                    setTimeout(() => {
+                        goToScreen('screen-main');
+                        loadDashboard();
+                    }, 1500);
+                } else if (data.error) {
+                    display.innerHTML = `<div style="color: var(--danger); font-size: 13px;">${data.error}. <a href="#" onclick="startQRLogin(); return false;">Retry</a></div>`;
+                    evtSource.close();
+                }
+            };
+            evtSource.onerror = () => {
+                evtSource.close();
+            };
+        }
+
+        // ── Dashboard ──
+        async function loadDashboard() {
+            try {
+                if (currentTab === 'followups') {
+                    const [followUps, stats] = await Promise.all([
+                        api('/api/followups'),
+                        api('/api/commitments/stats')
+                    ]);
+                    updateStats(stats);
+                    renderFollowUps(followUps);
+                    return;
+                } else if (currentTab === 'favorites') {
+                    const [favView, stats] = await Promise.all([
+                        api('/api/favorites'),
+                        api('/api/commitments/stats')
+                    ]);
+                    favChats = favView.fav_chats || {};
+                    updateStats(stats);
+                    renderFavoritesView(favView);
+                } else {
+                    const [groups, stats, favView] = await Promise.all([
+                        api('/api/commitments/grouped?status=' + (currentTab === 'resolved' ? 'resolved' : 'open')),
+                        api('/api/commitments/stats'),
+                        api('/api/favorites')
+                    ]);
+                    favChats = favView.fav_chats || {};
+                    allGroups = groups;
+                    updateStats(stats);
+                    renderGroups(groups);
+                }
+            } catch (e) {
+                console.error('load error:', e);
+            }
+        }
+
+        function updateStats(stats) {
+            document.getElementById('stat-open').textContent = stats.open;
+            document.getElementById('stat-you-owe').textContent = stats.you_owe;
+            document.getElementById('stat-they-owe').textContent = stats.they_owe;
+            document.getElementById('count-all').textContent = stats.open;
+            document.getElementById('count-you-owe').textContent = stats.you_owe;
+            document.getElementById('count-they-owe').textContent = stats.they_owe;
+            document.getElementById('count-resolved').textContent = stats.resolved;
+            document.getElementById('count-favorites').textContent = stats.favorites;
+            document.getElementById('count-followups').textContent = stats.follow_ups;
+            document.getElementById('settings-commitments').textContent = stats.open + stats.resolved;
+            document.getElementById('settings-msgs').textContent = stats.processed_messages;
+        }
+
+        function getInitials(name) {
+            return name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+        }
+
+        const chatSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>';
+
+        function renderGroups(groups) {
+            const container = document.getElementById('commitments-container');
+            if (!groups || groups.length === 0) {
+                container.innerHTML = `<div class="empty-state">
+                    <div class="empty-state-title">No commitments yet</div>
+                    <div class="empty-state-desc">Owe is listening to your WhatsApp conversations. Commitments will appear here as they're detected.</div>
+                </div>`;
+                return;
+            }
+
+            const html = renderGroupsHTML(groups);
+            container.innerHTML = html || `<div class="empty-state">
+                <div class="empty-state-title">Nothing here</div>
+                <div class="empty-state-desc">No commitments match this filter.</div>
+            </div>`;
+        }
+
+        function esc(s) {
+            if (!s) return '';
+            const d = document.createElement('div');
+            d.textContent = s;
+            return d.innerHTML;
+        }
+
+        function showReply(commitmentId, chatJID) {
+            const area = document.getElementById('reply-' + commitmentId);
+            if (area.classList.contains('hidden')) {
+                area.classList.remove('hidden');
+                area.innerHTML = `<div class="reply-input-row">
+                    <textarea class="reply-input" id="reply-text-${commitmentId}" placeholder="Type a reply..." rows="1" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendReply('${commitmentId}','${chatJID}');}"></textarea>
+                    <button class="reply-send-btn" onclick="sendReply('${commitmentId}','${chatJID}')">Send</button>
+                </div>`;
+                document.getElementById('reply-text-' + commitmentId).focus();
+            } else {
+                area.classList.add('hidden');
+                area.innerHTML = '';
+            }
+        }
+
+        async function sendReply(commitmentId, chatJID) {
+            const textarea = document.getElementById('reply-text-' + commitmentId);
+            const message = textarea.value.trim();
+            if (!message) return;
+
+            const btn = textarea.nextElementSibling;
+            btn.disabled = true;
+            btn.textContent = 'Sending...';
+            textarea.disabled = true;
+
+            try {
+                await api('/api/commitments/reply', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({chat_jid: chatJID, message})
+                });
+                const area = document.getElementById('reply-' + commitmentId);
+                area.innerHTML = `<div class="reply-sent">
+                    <span>Message sent</span>
+                    <div class="reply-sent-actions">
+                        <button class="reply-done-btn" onclick="updateStatus('${commitmentId}','resolved')">Mark done</button>
+                        <button class="reply-dismiss-btn" onclick="closeReply('${commitmentId}')">Close</button>
+                    </div>
+                </div>`;
+            } catch (e) {
+                btn.disabled = false;
+                btn.textContent = 'Send';
+                textarea.disabled = false;
+                textarea.style.borderColor = 'var(--danger)';
+            }
+        }
+
+        function closeReply(commitmentId) {
+            const area = document.getElementById('reply-' + commitmentId);
+            area.classList.add('hidden');
+            area.innerHTML = '';
+        }
+
+        async function toggleFavorite(id) {
+            try {
+                await api('/api/commitments/favorite', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({id})
+                });
+                loadDashboard();
+            } catch (e) {
+                console.error('favorite error:', e);
+            }
+        }
+
+        async function toggleChatFavorite(chatJID, chatName, isGroup) {
+            try {
+                const res = await api('/api/favorites/chat', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({chat_jid: chatJID, chat_name: chatName, is_group: isGroup})
+                });
+                if (res.favorited) {
+                    favChats[chatJID] = true;
+                } else {
+                    delete favChats[chatJID];
+                }
+                loadDashboard();
+            } catch (e) {
+                console.error('chat favorite error:', e);
+            }
+        }
+
+        function renderFavoritesView(favView) {
+            const container = document.getElementById('commitments-container');
+            const openGroups = favView.open || [];
+            const resolvedGroups = favView.resolved || [];
+
+            if (openGroups.length === 0 && resolvedGroups.length === 0) {
+                container.innerHTML = `<div class="empty-state">
+                    <div class="empty-state-title">No favorites yet</div>
+                    <div class="empty-state-desc">Star a contact, group, or individual commitment to track it here.</div>
+                </div>`;
+                return;
+            }
+
+            let html = '';
+            if (openGroups.length > 0) {
+                html += renderGroupsHTML(openGroups);
+            }
+
+            if (resolvedGroups.length > 0) {
+                html += `<div class="resolved-section">
+                    <div class="resolved-section-header">Recently closed</div>`;
+                for (const group of resolvedGroups) {
+                    const avatarStyle = group.is_group ? ' style="border-radius: 6px;"' : '';
+                    html += `<div class="commitment-group" data-person="${group.name.toLowerCase()}">
+                        <div class="group-header">
+                            <div class="group-header-left">
+                                <div class="group-avatar"${avatarStyle}>${getInitials(group.name)}</div>
+                                <span class="group-name">${esc(group.name)}</span>
+                                <span class="group-meta">${group.commitments.length} resolved</span>
+                            </div>
+                        </div>`;
+                    for (const c of group.commitments) {
+                        const dirClass = c.direction === 'you_owe' ? 'you-owe' : 'they-owe';
+                        const dirLabel = c.direction === 'you_owe' ? 'You owe' : 'They owe';
+                        const autoBadge = c.resolved_by === 'auto' ? '<span class="auto-resolved-badge">auto-closed by Owe</span>' : '';
+                        html += `<div class="commitment-card resolved-card">
+                            <div class="commitment-top">
+                                <div class="commitment-body">
+                                    <div class="commitment-title" style="text-decoration: line-through; color: var(--ink-tertiary);">${esc(c.title)}</div>
+                                    <div class="commitment-meta">
+                                        <span class="commitment-direction ${dirClass}">${dirLabel}</span>
+                                        ${autoBadge}
+                                        <span class="commitment-age">${c.resolved_at ? timeAgo(c.resolved_at) : ''}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>`;
+                    }
+                    html += '</div>';
+                }
+                html += '</div>';
+            }
+
+            container.innerHTML = html;
+        }
+
+        let followUpFilter = 'all';
+        let allFollowUps = [];
+
+        function renderFollowUps(items) {
+            allFollowUps = items || [];
+            renderFilteredFollowUps();
+        }
+
+        function setFollowUpFilter(filter, el) {
+            followUpFilter = filter;
+            document.querySelectorAll('.followup-filter').forEach(f => f.classList.remove('active'));
+            el.classList.add('active');
+            renderFilteredFollowUps();
+        }
+
+        function getAgeDays(createdAt) {
+            return (Date.now() - new Date(createdAt).getTime()) / (1000 * 60 * 60 * 24);
+        }
+
+        function renderFilteredFollowUps() {
+            const container = document.getElementById('commitments-container');
+            let items = allFollowUps;
+
+            const recentCount = items.filter(c => getAgeDays(c.created_at) <= 3).length;
+            const mediumCount = items.filter(c => { const d = getAgeDays(c.created_at); return d > 3 && d <= 7; }).length;
+            const redCount = items.filter(c => getAgeDays(c.created_at) > 7).length;
+
+            if (followUpFilter === 'recent') items = items.filter(c => getAgeDays(c.created_at) <= 3);
+            else if (followUpFilter === 'medium') items = items.filter(c => { const d = getAgeDays(c.created_at); return d > 3 && d <= 7; });
+            else if (followUpFilter === 'red') items = items.filter(c => getAgeDays(c.created_at) > 7);
+
+            let filterBar = `<div class="followup-filter-bar">
+                <button class="followup-filter ${followUpFilter === 'all' ? 'active' : ''}" onclick="setFollowUpFilter('all', this)">All ${allFollowUps.length}</button>
+                <button class="followup-filter ${followUpFilter === 'recent' ? 'active' : ''}" onclick="setFollowUpFilter('recent', this)">Recent ${recentCount}</button>
+                <button class="followup-filter ${followUpFilter === 'medium' ? 'active' : ''}" onclick="setFollowUpFilter('medium', this)">3-7 days ${mediumCount}</button>
+                <button class="followup-filter ${followUpFilter === 'red' ? 'active' : ''}" onclick="setFollowUpFilter('red', this)">7+ days ${redCount}</button>
+            </div>`;
+
+            if (allFollowUps.length === 0) {
+                container.innerHTML = `<div class="empty-state">
+                    <div class="empty-state-title">No follow-ups needed</div>
+                    <div class="empty-state-desc">When someone owes you something and hasn't replied in 24 hours, they'll appear here.</div>
+                </div>`;
+                return;
+            }
+
+            if (items.length === 0) {
+                container.innerHTML = filterBar + `<div class="empty-state">
+                    <div class="empty-state-title">None in this range</div>
+                    <div class="empty-state-desc">No follow-ups match this filter.</div>
+                </div>`;
+                return;
+            }
+
+            let html = filterBar;
+            for (const c of items) {
+                const age = commitmentAge(c.created_at);
+                const avatarStyle = c.is_group ? ' style="border-radius: 6px;"' : '';
+                const name = c.chat_name || c.person_name;
+                html += `<div class="commitment-card followup-card" id="card-${c.id}">
+                    <div class="commitment-top">
+                        <div class="commitment-body">
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                                <div class="group-avatar" style="width: 28px; height: 28px; font-size: 10px;"${avatarStyle}>${getInitials(name)}</div>
+                                <span style="font-size: 13px; font-weight: 500; color: var(--ink);">${esc(name)}</span>
+                                <span class="commitment-age ${age.cls}">${age.text}</span>
+                            </div>
+                            <div class="commitment-title">${esc(c.title)}</div>
+                            ${c.context ? `<div class="commitment-context">${esc(c.context)}</div>` : ''}
+                            ${c.source_quote ? `<div class="commitment-source">${chatSvg}<div class="source-text"><span class="source-quote">"${esc(c.source_quote)}"</span></div></div>` : ''}
+                            <div class="commitment-actions followup-actions">
+                                <button class="action-btn" onclick="nudge('${c.id}','${esc(c.chat_jid)}')">Nudge</button>
+                                <button class="action-btn done" onclick="updateStatus('${c.id}','resolved')">Done</button>
+                                <button class="action-btn" onclick="updateStatus('${c.id}','dismissed')">Dismiss</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="nudge-area hidden" id="nudge-${c.id}"></div>
+                </div>`;
+            }
+            container.innerHTML = html;
+        }
+
+        async function nudge(id, chatJID) {
+            const area = document.getElementById('nudge-' + id);
+            if (!area.classList.contains('hidden')) {
+                area.classList.add('hidden');
+                area.innerHTML = '';
+                return;
+            }
+            area.classList.remove('hidden');
+            area.innerHTML = '<div style="padding: 10px 0; color: var(--ink-tertiary); font-size: 12px;">Drafting nudge...</div>';
+
+            try {
+                const res = await api('/api/followups/nudge', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({id, action: 'draft'})
+                });
+                area.innerHTML = `<div class="nudge-preview">
+                    <textarea class="reply-input" id="nudge-text-${id}" rows="2">${esc(res.message)}</textarea>
+                    <div style="display: flex; gap: 6px; margin-top: 6px;">
+                        <button class="reply-send-btn" onclick="sendNudge('${id}','${chatJID}')">Send</button>
+                        <button class="action-btn" onclick="document.getElementById('nudge-${id}').classList.add('hidden')">Cancel</button>
+                    </div>
+                </div>`;
+            } catch (e) {
+                area.innerHTML = '<div style="padding: 10px 0; color: var(--danger); font-size: 12px;">Failed to draft nudge</div>';
+            }
+        }
+
+        async function sendNudge(id, chatJID) {
+            const textarea = document.getElementById('nudge-text-' + id);
+            const message = textarea.value.trim();
+            if (!message) return;
+
+            textarea.disabled = true;
+            const btn = textarea.parentElement.querySelector('.reply-send-btn');
+            btn.disabled = true;
+            btn.textContent = 'Sending...';
+
+            try {
+                await api('/api/commitments/reply', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({chat_jid: chatJID, message})
+                });
+                // Record the nudge timestamp so it drops from follow-ups for 48h
+                await api('/api/followups/nudge', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({id, action: 'record'})
+                }).catch(() => {});
+                const area = document.getElementById('nudge-' + id);
+                area.innerHTML = `<div style="padding: 8px 0; color: var(--growth); font-size: 12px; font-weight: 500;">Nudge sent</div>`;
+                setTimeout(() => loadDashboard(), 1500);
+            } catch (e) {
+                btn.disabled = false;
+                btn.textContent = 'Send';
+                textarea.disabled = false;
+            }
+        }
+
+        function renderGroupsHTML(groups) {
+            let html = '';
+            for (const group of groups) {
+                let filtered = group.commitments;
+                if (!isSearching) {
+                    if (currentTab === 'you_owe') filtered = filtered.filter(c => c.direction === 'you_owe');
+                    else if (currentTab === 'they_owe') filtered = filtered.filter(c => c.direction === 'they_owe');
+                }
+                if (filtered.length === 0) continue;
+
+                const openCount = filtered.filter(c => c.status === 'open').length;
+                const resolvedCount = filtered.filter(c => c.status !== 'open').length;
+                const youOwe = filtered.filter(c => c.direction === 'you_owe' && c.status === 'open').length;
+                const theyOwe = filtered.filter(c => c.direction === 'they_owe' && c.status === 'open').length;
+                const avatarStyle = group.is_group ? ' style="border-radius: 6px;"' : '';
+                const chatFav = favChats[group.chat_jid] || false;
+                const chatStarFill = chatFav ? 'currentColor' : 'none';
+                const chatStarClass = chatFav ? 'active' : '';
+
+                let metaText = group.is_group ? 'group &middot; ' : '';
+                if (isSearching) {
+                    const parts = [];
+                    if (openCount > 0) parts.push(openCount + ' open');
+                    if (resolvedCount > 0) parts.push(resolvedCount + ' closed');
+                    metaText += parts.join(', ');
+                } else {
+                    metaText += filtered.length + ' open';
+                }
+
+                html += `<div class="commitment-group" data-person="${group.name.toLowerCase()}">
+                    <div class="group-header">
+                        <div class="group-header-left">
+                            <div class="group-avatar"${avatarStyle}>${getInitials(group.name)}</div>
+                            <span class="group-name">${esc(group.name)}</span>
+                            <button class="favorite-btn group-fav-btn ${chatStarClass}" onclick="event.stopPropagation();toggleChatFavorite('${esc(group.chat_jid)}','${esc(group.name)}',${group.is_group})"><svg viewBox="0 0 24 24" fill="${chatStarFill}" stroke="currentColor" stroke-width="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></button>
+                            <span class="group-meta">${metaText}</span>
+                        </div>
+                        <div class="group-header-right">
+                            ${youOwe > 0 ? `<span class="group-badge owe">${youOwe} you owe</span>` : ''}
+                            ${theyOwe > 0 ? `<span class="group-badge owed">${theyOwe} they owe</span>` : ''}
+                        </div>
+                    </div>`;
+
+                for (const c of filtered) {
+                    const isResolved = c.status !== 'open';
+                    const dirClass = c.direction === 'you_owe' ? 'you-owe' : 'they-owe';
+                    const dirLabel = c.direction === 'you_owe' ? 'You owe' : 'They owe';
+                    const starFill = c.favorited ? 'currentColor' : 'none';
+                    const starClass = c.favorited ? 'active' : '';
+                    const starSvg = `<svg viewBox="0 0 24 24" fill="${starFill}" stroke="currentColor" stroke-width="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`;
+                    const cardClass = isResolved ? 'commitment-card resolved-card' : 'commitment-card';
+                    const titleStyle = isResolved ? ' style="text-decoration: line-through; color: var(--ink-tertiary);"' : '';
+                    const statusBadge = isResolved ? `<span class="commitment-status-badge">${c.status}</span>` : '';
+                    const autoResolvedBadge = (isResolved && c.resolved_by === 'auto') ? '<span class="auto-resolved-badge">auto-closed by Owe</span>' : '';
+                    const age = commitmentAge(c.created_at);
+                    const ageHtml = !isResolved ? `<span class="commitment-age ${age.cls}">${age.text}</span>` : '';
+                    const resolvedTimeHtml = isResolved && c.resolved_at ? `<span class="commitment-age">${timeAgo(c.resolved_at)}</span>` : '';
+
+                    html += `<div class="${cardClass}" data-direction="${dirClass}" data-search="${esc(c.title)} ${esc(c.context)} ${esc(c.person_name)}" id="card-${c.id}">
+                        <div class="commitment-top">
+                            <div class="commitment-body">
+                                <div class="commitment-title"${titleStyle}>${esc(c.title)}</div>
+                                ${!isResolved && c.context ? `<div class="commitment-context">${esc(c.context)}</div>` : ''}
+                                ${!isResolved && c.source_quote ? `<div class="commitment-source">${chatSvg}<div class="source-text"><span class="source-quote">"${esc(c.source_quote)}"</span>${c.source_time ? `<span class="source-time">${esc(c.source_time)}</span>` : ''}</div></div>` : ''}
+                                <div class="commitment-meta">
+                                    <span class="commitment-direction ${dirClass}">${dirLabel}</span>
+                                    ${statusBadge}
+                                    ${autoResolvedBadge}
+                                    ${!isResolved && c.due_hint ? `<span class="commitment-age">${esc(c.due_hint)}</span>` : ''}
+                                    ${ageHtml}
+                                    ${resolvedTimeHtml}
+                                </div>
+                            </div>
+                            ${!isResolved ? `<button class="favorite-btn ${starClass}" onclick="toggleFavorite('${c.id}')">${starSvg}</button>
+                            <div class="commitment-actions">
+                                <button class="action-btn" onclick="showReply('${c.id}','${esc(c.chat_jid)}')">Reply</button>
+                                <button class="action-btn done" onclick="updateStatus('${c.id}','resolved')">Done</button>
+                                <button class="action-btn" onclick="updateStatus('${c.id}','dismissed')">Dismiss</button>
+                            </div>` : ''}
+                        </div>
+                        ${!isResolved ? `<div class="reply-area hidden" id="reply-${c.id}"></div>` : ''}
+                    </div>`;
+                }
+                html += '</div>';
+            }
+            return html;
+        }
+
+        function timeAgo(dateStr) {
+            const date = new Date(dateStr);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+            if (diffDays === 0) return 'today';
+            if (diffDays === 1) return 'yesterday';
+            if (diffDays < 7) return diffDays + 'd ago';
+            if (diffDays < 30) return Math.floor(diffDays / 7) + 'w ago';
+            return Math.floor(diffDays / 30) + 'mo ago';
+        }
+
+        function commitmentAge(createdAt) {
+            const date = new Date(createdAt);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+            const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
+            let text, cls = '';
+            if (diffHrs < 1) text = 'just now';
+            else if (diffHrs < 24) text = diffHrs + 'h';
+            else if (diffDays < 7) text = diffDays + 'd';
+            else if (diffDays < 30) text = Math.floor(diffDays / 7) + 'w';
+            else text = Math.floor(diffDays / 30) + 'mo';
+            if (diffDays >= 7) cls = 'stale';
+            if (diffDays >= 14) cls = 'overdue';
+            return {text, cls};
+        }
+
+        async function updateStatus(id, status) {
+            try {
+                await api('/api/commitments/update', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({id, status})
+                });
+                loadDashboard();
+            } catch (e) {
+                console.error('update error:', e);
+            }
+        }
+
+        // ── Tabs ──
+        function switchTab(tab, el) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            el.classList.add('active');
+            currentTab = tab;
+            loadDashboard();
+        }
+
+        // ── Search ──
+        let searchTimeout;
+        function handleSearch() {
+            clearTimeout(searchTimeout);
+            const query = document.getElementById('search-input').value.trim();
+            searchTimeout = setTimeout(async () => {
+                if (!query) {
+                    renderGroups(allGroups);
+                    return;
+                }
+                try {
+                    const results = await api('/api/commitments/search?q=' + encodeURIComponent(query));
+                    const groupMap = {};
+                    const order = [];
+                    for (const c of results) {
+                        const key = c.chat_jid || c.person_name;
+                        if (!groupMap[key]) {
+                            groupMap[key] = {name: c.chat_name || c.person_name, chat_jid: c.chat_jid, is_group: c.is_group, commitments: []};
+                            order.push(key);
+                        }
+                        groupMap[key].commitments.push(c);
+                    }
+                    isSearching = true;
+                    renderGroups(order.map(k => groupMap[k]));
+                    isSearching = false;
+                } catch (e) {
+                    console.error('search error:', e);
+                }
+            }, 300);
+        }
+
+        // ── Theme ──
+        function toggleTheme() {
+            const html = document.documentElement;
+            const next = html.getAttribute('data-theme') === 'dark' ? '' : 'dark';
+            html.setAttribute('data-theme', next);
+            localStorage.setItem('commit-theme', next);
+        }
+
+        // ── Settings ──
+        function openSettings() { document.getElementById('settings-overlay').classList.add('active'); }
+        function closeSettings() { document.getElementById('settings-overlay').classList.remove('active'); }
+
+        async function logout() {
+            if (!confirm('Disconnect WhatsApp?')) return;
+            try {
+                await api('/api/logout', {method: 'POST'});
+                location.reload();
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        }
+
+        // ── Keyboard shortcuts ──
+        document.addEventListener('keydown', (e) => {
+            if (e.key === '/' && !e.ctrlKey && !e.metaKey && document.activeElement.tagName !== 'INPUT') {
+                e.preventDefault();
+                document.getElementById('search-input')?.focus();
+            }
+            if (e.key === 'Escape') {
+                closeSettings();
+                document.getElementById('search-input')?.blur();
+            }
+        });
+
+        // ── Auto-refresh ──
+        setInterval(() => {
+            if (document.getElementById('screen-main').classList.contains('active')) {
+                loadDashboard();
+            }
+        }, 30000);
+
+        // ── Theme persistence ──
+        if (localStorage.getItem('commit-theme') === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+        }
+
+        // ── Boot ──
+        init();
+    </script>
+</body>
+</html>

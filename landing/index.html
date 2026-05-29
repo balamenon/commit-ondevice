@@ -1,0 +1,1185 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>owe — never drop a commitment again</title>
+<meta name="description" content="Owe reads your WhatsApp conversations, extracts every promise — yours and theirs — and tracks them until they're done. Auto-resolves when commitments are fulfilled. Runs locally. Your messages stay yours." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --serif: "Newsreader", "Iowan Old Style", "Georgia", serif;
+    --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Segoe UI", Roboto, sans-serif;
+    --r-sm: 6px;
+    --r-md: 10px;
+    --r-lg: 16px;
+  }
+
+  .t-dark {
+    --canvas: #14130f;
+    --surface: #1d1c17;
+    --surface-2: #252320;
+    --ink: #f1ede3;
+    --ink-2: #a8a39a;
+    --ink-3: #6b675f;
+    --line: #2a2823;
+    --line-2: #221f1b;
+    --accent: #7faa8d;
+    --warn: #d4b375;
+    --danger: #c97a85;
+    --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-lift: 0 24px 60px rgba(0, 0, 0, 0.55), 0 4px 14px rgba(0, 0, 0, 0.4);
+    --card-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+    --card-shadow-hover: 0 8px 28px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3);
+    --card-border-hover: rgba(241, 237, 227, 0.18);
+    --focus-ring: rgba(241, 237, 227, 0.10);
+    --device-border: rgba(241, 237, 227, 0.08);
+  }
+  .t-light {
+    --canvas: #faf9f5;
+    --surface: #ffffff;
+    --surface-2: #f4f3ee;
+    --ink: #1a1813;
+    --ink-2: #5f5b52;
+    --ink-3: #938e82;
+    --line: #e7e4dc;
+    --line-2: #f1efe9;
+    --accent: #3f6b52;
+    --warn: #a87a2e;
+    --danger: #9c4049;
+    --shadow-soft: 0 1px 2px rgba(26, 24, 19, 0.05);
+    --shadow-lift: 0 24px 60px rgba(26, 24, 19, 0.12), 0 4px 14px rgba(26, 24, 19, 0.06);
+    --card-shadow: 0 1px 2px rgba(26, 24, 19, 0.04);
+    --card-shadow-hover: 0 8px 28px rgba(26, 24, 19, 0.08), 0 1px 2px rgba(26, 24, 19, 0.05);
+    --card-border-hover: rgba(26, 24, 19, 0.16);
+    --focus-ring: rgba(26, 24, 19, 0.06);
+    --device-border: rgba(26, 24, 19, 0.10);
+  }
+  .nav {
+    --canvas: #14130f; --ink: #f1ede3; --line: #2a2823; --surface: #1d1c17;
+  }
+  section { background: var(--canvas); color: var(--ink); }
+  ::selection { background: rgba(127, 170, 141, 0.30); color: inherit; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: #14130f;
+    color: #f1ede3;
+    font-family: var(--sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    line-height: 1.55;
+    font-size: 16px;
+  }
+  a { color: inherit; text-decoration: none; }
+  img { max-width: 100%; display: block; }
+  button { font: inherit; cursor: pointer; }
+
+  .wrap { max-width: 960px; margin: 0 auto; padding: 0 28px; }
+
+  /* ===== Nav ===== */
+  .nav {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(20, 19, 15, 0.78);
+    backdrop-filter: saturate(1.4) blur(14px);
+    -webkit-backdrop-filter: saturate(1.4) blur(14px);
+    border-bottom: 1px solid transparent;
+    transition: border-color .2s;
+  }
+  .nav.scrolled { border-bottom-color: var(--line); }
+  .nav-inner {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 0;
+  }
+  .brand {
+    font-family: var(--serif);
+    font-size: 20px;
+    font-weight: 500;
+    letter-spacing: -0.015em;
+    color: var(--ink);
+  }
+  .nav-cta {
+    font-size: 14px; font-weight: 500;
+    color: var(--ink);
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    transition: border-color .15s, background .15s;
+  }
+  .nav-cta:hover { border-color: var(--ink); }
+
+  /* ===== Type scale ===== */
+  h1, h2, h3 { margin: 0; font-weight: 500; letter-spacing: -0.02em; }
+  h1 {
+    font-family: var(--serif);
+    font-size: clamp(44px, 7vw, 80px);
+    line-height: 1.02;
+    letter-spacing: -0.03em;
+    font-weight: 500;
+  }
+  h1 em { font-style: italic; color: var(--ink-2); font-weight: 400; }
+  h2 {
+    font-family: var(--serif);
+    font-size: clamp(30px, 4.2vw, 48px);
+    line-height: 1.1;
+    letter-spacing: -0.025em;
+  }
+  h2 em { font-style: italic; color: var(--ink-2); font-weight: 400; }
+  h3 {
+    font-family: var(--serif);
+    font-size: 22px;
+    font-weight: 500;
+    letter-spacing: -0.015em;
+  }
+  p { margin: 0; color: var(--ink-2); font-size: 17px; line-height: 1.6; }
+  .eyebrow {
+    font-size: 12px; font-weight: 500;
+    letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--ink-3);
+    margin: 0 0 20px;
+  }
+
+  /* ===== Sections ===== */
+  section { padding: 80px 0; }
+
+  /* ===== Hero ===== */
+  .hero { padding: 96px 0 64px; }
+  .hero h1 { margin-bottom: 22px; max-width: 16ch; }
+  .hero-sub {
+    font-size: 19px;
+    color: var(--ink-2);
+    max-width: 56ch;
+    margin-bottom: 28px;
+    line-height: 1.5;
+  }
+  .hero-sub + .cta-row { margin-top: 8px; }
+  .hero-sub strong { color: var(--ink); font-weight: 500; }
+  .hero-sub .under {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-decoration-color: var(--ink-2);
+    text-underline-offset: 5px;
+    color: var(--ink);
+  }
+  .cta-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .btn-primary {
+    background: var(--ink); color: var(--canvas);
+    padding: 13px 22px;
+    border-radius: 999px;
+    border: 1px solid var(--ink);
+    font-size: 15px; font-weight: 500;
+    display: inline-flex; align-items: center; gap: 8px;
+    transition: transform .12s, box-shadow .15s;
+  }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: var(--shadow-lift); }
+  .btn-secondary {
+    color: var(--ink);
+    padding: 13px 18px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    font-size: 15px; font-weight: 500;
+    transition: border-color .15s;
+  }
+  .btn-secondary:hover { border-color: var(--ink); }
+  .hero-trust {
+    margin-top: 40px;
+    padding-top: 22px;
+    border-top: 1px solid var(--line);
+    display: flex; gap: 40px; flex-wrap: wrap;
+    font-size: 13px; color: var(--ink-3);
+  }
+  .hero-trust span { display: inline-flex; align-items: center; gap: 8px; }
+  .hero-trust .dot {
+    width: 4px; height: 4px; border-radius: 50%;
+    background: var(--ink-3);
+  }
+
+  /* ===== How it works ===== */
+  .how { border-top: 1px solid var(--line); }
+  .how-lede { max-width: 48ch; margin-bottom: 48px; }
+  .how-steps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+  }
+  .how-step {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    box-shadow: var(--card-shadow);
+    transition: border-color .15s, box-shadow .15s, background .15s;
+  }
+  .how-step:hover {
+    border-color: var(--card-border-hover);
+    background: var(--surface-2);
+    box-shadow: var(--card-shadow-hover);
+  }
+  .how-num {
+    font-family: var(--serif);
+    font-size: 13px;
+    color: var(--ink-3);
+    font-weight: 400;
+    letter-spacing: 0.06em;
+  }
+  .how-step h3 { color: var(--ink); margin: 0; }
+  .how-step p { font-size: 16px; margin: 0; }
+
+  /* ===== Features (card grid) ===== */
+  .features { border-top: 1px solid var(--line); }
+  .features-lede { max-width: 48ch; margin-bottom: 48px; }
+  .feature-list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 18px;
+  }
+  .feature {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    box-shadow: var(--card-shadow);
+    transition: border-color .15s, box-shadow .15s, background .15s;
+  }
+  .feature:hover {
+    border-color: var(--card-border-hover);
+    background: var(--surface-2);
+    box-shadow: var(--card-shadow-hover);
+  }
+  .feature h3 { color: var(--ink); margin: 0; }
+  .feature p { font-size: 16px; margin: 0; }
+
+  /* ===== Privacy ===== */
+  .privacy { border-top: 1px solid var(--line); }
+  .privacy-lede { max-width: 48ch; margin-bottom: 48px; }
+  .privacy-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 18px;
+    margin-bottom: 28px;
+  }
+  .privacy-col {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 28px;
+    box-shadow: var(--card-shadow);
+  }
+  .privacy-label {
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin-bottom: 14px;
+  }
+  .privacy-col p { font-size: 16px; color: var(--ink-2); margin: 0; line-height: 1.55; }
+  .privacy-col p strong { color: var(--ink); font-weight: 500; }
+  .privacy-footnote {
+    font-size: 15px;
+    color: var(--ink-3);
+    max-width: 64ch;
+    margin: 0;
+    line-height: 1.55;
+  }
+
+  /* ===== See it (marquee) ===== */
+  .see-it { background: var(--canvas); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); overflow: hidden; }
+  .see-it-header { max-width: 52ch; margin-bottom: 48px; }
+  .stage {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr 1.6fr 1fr;
+    gap: 28px;
+    align-items: center;
+    justify-items: center;
+  }
+
+  .phone {
+    position: relative;
+    width: 260px;
+    height: 540px;
+    background: #0a0908;
+    border: 1px solid var(--device-border);
+    border-radius: 40px;
+    padding: 10px;
+    box-shadow: var(--shadow-lift);
+  }
+  .phone::before {
+    content: "";
+    position: absolute;
+    top: 14px; left: 50%; transform: translateX(-50%);
+    width: 90px; height: 24px;
+    background: #0a0908;
+    border-radius: 16px;
+    z-index: 3;
+  }
+  .phone-screen {
+    position: relative;
+    width: 100%; height: 100%;
+    border-radius: 30px;
+    overflow: hidden;
+    background: var(--canvas);
+  }
+  .phone-track {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    will-change: transform;
+    transition: transform 1s cubic-bezier(.7, 0, .25, 1);
+  }
+  .phone-track > * {
+    width: 100%;
+    height: 100%;
+    flex-shrink: 0;
+  }
+  .phone.lag .phone-track { transition-delay: .35s; }
+
+  .desktop {
+    width: 100%;
+    max-width: 520px;
+    background: #0a0908;
+    border: 1px solid var(--device-border);
+    border-radius: 12px;
+    padding: 10px 10px 12px;
+    box-shadow: var(--shadow-lift);
+  }
+  .desktop-chrome {
+    display: flex; gap: 6px;
+    padding: 4px 4px 10px;
+  }
+  .desktop-chrome span {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: #3a3b3f;
+  }
+  .desktop-chrome span:nth-child(1) { background: #ff5f57; }
+  .desktop-chrome span:nth-child(2) { background: #febc2e; }
+  .desktop-chrome span:nth-child(3) { background: #28c840; }
+  .desktop-screen {
+    width: 100%;
+    min-height: 260px;
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--canvas);
+  }
+  .desktop-screen > * { height: auto; min-height: 260px; width: 100%; }
+
+  /* ===== Synthetic Owe screen mocks ===== */
+  .screen {
+    background: var(--canvas);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 11px;
+    line-height: 1.4;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .screen-statusbar {
+    height: 38px;
+    flex-shrink: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding: 0 18px 4px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .screen-statusbar .icons { letter-spacing: 1px; }
+  .screen-header {
+    padding: 8px 16px 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--line);
+  }
+  .screen-brand {
+    font-family: var(--serif);
+    font-size: 13px;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+  }
+  .screen-meta { font-size: 10px; color: var(--ink-3); }
+  .screen-body {
+    flex: 1;
+    padding: 14px 14px 18px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .screen-label {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  .screen-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 10px 12px;
+  }
+  .screen-card + .screen-card { margin-top: 8px; }
+  .screen-card-eyebrow {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .screen-card-eyebrow .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--warn);
+  }
+  .screen-card-eyebrow.danger .dot { background: var(--danger); }
+  .screen-card-eyebrow.accent .dot { background: var(--accent); }
+  .screen-card-title {
+    font-size: 12px;
+    color: var(--ink);
+    line-height: 1.35;
+    font-weight: 500;
+  }
+  .screen-card-body {
+    font-size: 11px;
+    color: var(--ink-2);
+    line-height: 1.45;
+  }
+  .screen-card-time {
+    font-size: 9px;
+    color: var(--ink-3);
+    margin-top: 6px;
+  }
+  .screen-card-meta {
+    font-size: 10px;
+    color: var(--ink-3);
+    margin-top: 3px;
+  }
+  .screen-pill-row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .screen-pill {
+    font-size: 10px;
+    color: var(--ink-2);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    padding: 4px 10px;
+    border-radius: 999px;
+  }
+  .screen-pill.active {
+    background: var(--ink);
+    color: var(--canvas);
+    border-color: var(--ink);
+  }
+  .screen-mini-actions { display: flex; gap: 6px; margin-top: 8px; }
+  .screen-mini-actions span {
+    font-size: 10px;
+    color: var(--ink-2);
+    background: var(--canvas);
+    border: 1px solid var(--line);
+    padding: 4px 10px;
+    border-radius: 6px;
+  }
+  .screen-row {
+    display: flex;
+    flex-direction: column;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .screen-row-top {
+    display: flex; justify-content: space-between; align-items: baseline;
+  }
+  .screen-row-name {
+    font-size: 12px; font-weight: 500; color: var(--ink);
+  }
+  .screen-row-age {
+    font-size: 10px; color: var(--danger);
+  }
+  .screen-row-age.stale { color: var(--warn); }
+  .screen-row-text {
+    font-size: 11px; color: var(--ink-2);
+    margin-top: 3px; line-height: 1.4;
+  }
+  .screen-row-dir {
+    font-size: 9px; color: var(--ink-3);
+    margin-top: 2px;
+  }
+  .screen-badge {
+    display: inline-block;
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba(127, 170, 141, 0.15);
+    color: var(--accent);
+    margin-top: 4px;
+  }
+
+  /* Desktop-flavored screen */
+  .screen-desktop { padding: 18px 0 0; font-size: 12px; line-height: 1.5; }
+  .screen-desktop .screen-header {
+    border-bottom: 1px solid var(--line);
+    padding: 0 28px 12px;
+  }
+  .screen-desktop .screen-body {
+    max-width: 540px;
+    margin: 0 auto;
+    padding: 24px 28px;
+    flex: 1;
+  }
+  .screen-desktop .screen-label { font-size: 10px; }
+  .screen-desktop .screen-card { padding: 14px 16px; border-radius: 12px; }
+  .screen-desktop .screen-card-title { font-size: 14px; }
+  .screen-desktop .screen-card-body { font-size: 12px; }
+  .screen-desktop .screen-row-name { font-size: 13px; }
+  .screen-desktop .screen-row-text { font-size: 12px; }
+  .screen-desktop .screen-row-age { font-size: 11px; }
+  .caption {
+    margin-top: 40px;
+    text-align: center;
+    font-size: 13px; color: var(--ink-3);
+    letter-spacing: 0.04em;
+  }
+
+  /* ===== Access ===== */
+  .access {
+    border-top: 1px solid var(--line);
+    background: var(--surface);
+  }
+  .access h2 { margin-bottom: 16px; }
+  .access > .wrap > p { max-width: 48ch; }
+
+  .form-card {
+    margin-top: 32px;
+    max-width: 560px;
+    padding: 28px;
+    background: var(--canvas);
+    border: 1px solid var(--line);
+    border-radius: var(--r-lg);
+  }
+  .form-step { display: none; }
+  .form-step.active { display: block; }
+  .email-row {
+    display: flex; gap: 10px;
+    flex-wrap: wrap;
+  }
+  .email-row input {
+    flex: 1 1 260px;
+    font: inherit;
+    padding: 13px 18px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink);
+    font-size: 15px;
+    outline: none;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .email-row input::placeholder { color: var(--ink-3); }
+  .email-row input:focus {
+    border-color: var(--ink);
+    box-shadow: 0 0 0 3px var(--focus-ring);
+  }
+  .form-note {
+    font-size: 13px; color: var(--ink-3);
+    margin-top: 14px;
+  }
+
+  .chip-group { margin-top: 24px; }
+  .chip-group:first-of-type { margin-top: 0; }
+  .chip-label {
+    font-size: 13px; font-weight: 500;
+    color: var(--ink);
+    margin-bottom: 10px;
+  }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink);
+    font-size: 14px;
+    transition: border-color .15s, background .15s, color .15s;
+  }
+  .chip:hover { border-color: var(--ink-2); }
+  .chip.selected { background: var(--ink); color: var(--canvas); border-color: var(--ink); }
+  .chip-actions {
+    margin-top: 28px;
+    display: flex; gap: 12px; align-items: center;
+  }
+  .link-skip {
+    background: transparent;
+    color: var(--ink-2);
+    border: none;
+    font-size: 14px;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    padding: 6px 4px;
+  }
+  .link-skip:hover { color: var(--ink); }
+  .form-error {
+    display: none;
+    margin-top: 16px;
+    font-size: 13px;
+    color: var(--danger);
+  }
+  .profile-intro {
+    font-size: 15px; color: var(--ink-2);
+    margin-bottom: 24px;
+  }
+
+  .form-done { display: none; }
+  .form-done.active { display: block; }
+  .check {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: rgba(127, 170, 141, 0.18);
+    color: var(--accent);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    margin-bottom: 18px;
+  }
+  .form-done h3 { margin-bottom: 10px; color: var(--ink); }
+  .form-done p { font-size: 15px; }
+
+  /* ===== Footer ===== */
+  footer {
+    padding: 56px 0 72px;
+    border-top: 1px solid var(--line);
+    background: var(--canvas);
+    color: var(--ink);
+  }
+  .footer-inner {
+    display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px;
+    font-size: 13px; color: var(--ink-3);
+  }
+  .footer-brand {
+    font-family: var(--serif);
+    font-size: 15px;
+    color: var(--ink);
+    font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+
+  /* ===== Responsive ===== */
+  @media (max-width: 900px) {
+    section { padding: 64px 0; }
+    .hero { padding: 72px 0 48px; }
+    .how-steps { grid-template-columns: 1fr; gap: 14px; }
+    .feature-list { grid-template-columns: 1fr; gap: 14px; }
+    .feature { padding: 24px; }
+    .privacy-grid { grid-template-columns: 1fr; gap: 14px; }
+    .privacy-col { padding: 24px; }
+    .privacy-lede { margin-bottom: 40px; }
+    .see-it-header { margin-bottom: 40px; }
+    .stage { grid-template-columns: 1fr; gap: 32px; }
+    .phone.side { display: none; }
+    .desktop { max-width: 100%; }
+    .form-card { margin-top: 32px; }
+  }
+  @media (max-width: 600px) {
+    .wrap { padding: 0 20px; }
+    section { padding: 48px 0; }
+    .hero { padding: 40px 0 32px; }
+    .hero h1 { margin-bottom: 20px; }
+    .hero-sub { font-size: 17px; margin-bottom: 28px; }
+    .hero-trust { margin-top: 36px; padding-top: 20px; gap: 14px; }
+    .how-step { padding: 22px; }
+    .how-step h3 { font-size: 20px; }
+    .how-step p { font-size: 15px; }
+    .feature { padding: 22px; }
+    .feature h3 { font-size: 20px; }
+    .feature p { font-size: 15px; }
+    .privacy-col { padding: 22px; }
+    .privacy-col p { font-size: 15px; }
+    .privacy-lede { margin-bottom: 24px; }
+    .see-it-header { margin-bottom: 32px; }
+    .desktop { display: none; }
+    .stage { gap: 0; }
+    .phone { width: 240px; height: 500px; }
+    .form-card { padding: 22px; margin-top: 28px; }
+    .chip-actions { flex-direction: column; align-items: stretch; }
+    .chip-actions .btn-primary { width: 100%; justify-content: center; }
+  }
+</style>
+</head>
+<body>
+
+<header class="nav" id="nav">
+  <div class="wrap nav-inner">
+    <a href="#top" class="brand">owe</a>
+    <a href="#access" class="nav-cta">request access</a>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- ============ HERO ============ -->
+  <section class="hero t-dark">
+    <div class="wrap">
+      <h1>never drop a <em>promise.</em></h1>
+      <p class="hero-sub">
+        every conversation has commitments buried in it.
+      </p>
+      <p class="hero-sub" style="margin-top:18px;">
+        owe <span class="under">reads your WhatsApp chats</span>, extracts every promise — yours and theirs — and tracks them until they're done.
+      </p>
+      <p class="hero-sub" style="margin-top:18px;">
+        <span class="under">auto-resolves when the work is finished</span>. nudges when it's not.
+      </p>
+      <div class="cta-row">
+        <a href="#access" class="btn-primary">request access →</a>
+        <a href="#see" class="btn-secondary">see how it works</a>
+      </div>
+      <div class="hero-trust">
+        <span><span class="dot"></span> WhatsApp Web protocol</span>
+        <span><span class="dot"></span> runs on your machine</span>
+        <span><span class="dot"></span> messages never leave it</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ HOW IT WORKS ============ -->
+  <section class="how t-light">
+    <div class="wrap">
+      <p class="eyebrow">how it works</p>
+      <h2 class="how-lede">three steps, <em>zero effort.</em></h2>
+
+      <div class="how-steps">
+        <div class="how-step">
+          <div class="how-num">01</div>
+          <h3>connect WhatsApp.</h3>
+          <p>scan a QR code. owe pairs with WhatsApp Web — no phone access needed, no exports, no screenshots.</p>
+        </div>
+        <div class="how-step">
+          <div class="how-num">02</div>
+          <h3>it reads your chats.</h3>
+          <p>owe scans conversations for commitments — things you promised, things others promised you. grouped by person.</p>
+        </div>
+        <div class="how-step">
+          <div class="how-num">03</div>
+          <h3>track and close.</h3>
+          <p>commitments auto-resolve when the conversation shows they're done. or dismiss them yourself with one tap.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FEATURES ============ -->
+  <section class="features t-dark">
+    <div class="wrap">
+      <p class="eyebrow">what owe does</p>
+      <h2 class="features-lede">the details, <em>handled.</em></h2>
+
+      <div class="feature-list">
+        <div class="feature">
+          <h3>auto-extraction.</h3>
+          <p>owe reads new messages and finds commitments automatically. who said what, who owes what, with the original quote.</p>
+        </div>
+        <div class="feature">
+          <h3>auto-resolution.</h3>
+          <p>when a commitment is fulfilled in the conversation — a file shared, a task confirmed — owe marks it done. no manual work.</p>
+        </div>
+        <div class="feature">
+          <h3>follow-ups.</h3>
+          <p>things they owe you with no reply. owe surfaces them, drafts a polite nudge, and lets you send it in one tap.</p>
+        </div>
+        <div class="feature">
+          <h3>bot commands.</h3>
+          <p>message yourself on WhatsApp to check commitments. "owe @Alex" shows what's open. "commitments" lists everything.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SEE IT (marquee) ============ -->
+  <section class="see-it t-light" id="see">
+    <div class="wrap">
+      <div class="see-it-header">
+        <p class="eyebrow">a live look</p>
+        <h2><em>owe keeps score quietly.</em></h2>
+      </div>
+
+      <div class="stage">
+        <div class="phone side" aria-hidden="true">
+          <div class="phone-screen">
+            <div class="phone-track" data-track="a" data-order="dashboard,followups,resolved"></div>
+          </div>
+        </div>
+
+        <div class="desktop">
+          <div class="desktop-chrome"><span></span><span></span><span></span></div>
+          <div class="desktop-screen" data-screen="desktop"></div>
+        </div>
+
+        <div class="phone lag">
+          <div class="phone-screen">
+            <div class="phone-track" data-track="b" data-order="followups,resolved,dashboard"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PRIVACY ============ -->
+  <section class="privacy t-dark" id="privacy">
+    <div class="wrap">
+      <p class="eyebrow">on privacy</p>
+      <h2 class="privacy-lede">your chats, <em>your machine.</em></h2>
+
+      <div class="privacy-grid">
+        <div class="privacy-col">
+          <div class="privacy-label">stays on your machine</div>
+          <p>owe connects directly to WhatsApp's servers using the same protocol as WhatsApp Web. <strong>messages are decrypted and processed locally.</strong> nothing is stored on a cloud server.</p>
+        </div>
+        <div class="privacy-col">
+          <div class="privacy-label">leaves your machine</div>
+          <p>only the small context needed for extraction — sent to Claude (by Anthropic) for commitment analysis, then forgotten. <strong>no chat logs. no training. no human review.</strong></p>
+        </div>
+      </div>
+
+      <p class="privacy-footnote">disconnect WhatsApp in settings. delete the app, and every trace goes with it.</p>
+    </div>
+  </section>
+
+  <!-- ============ REQUEST ACCESS ============ -->
+  <section class="access t-dark" id="access">
+    <div class="wrap access-wrap">
+      <h2>owe is opening up <em>slowly.</em></h2>
+      <p>
+        onboarding users one by one. drop your email. we'll be in touch.
+      </p>
+
+      <div class="form-card">
+        <!-- Step 1: email -->
+        <form class="form-step active" id="step-email" novalidate>
+          <div class="email-row">
+            <input type="email" name="email" id="email" placeholder="you@company.com" required autocomplete="email" />
+            <button type="submit" class="btn-primary">request access →</button>
+          </div>
+          <p class="form-note">no newsletter. one email, then your install link.</p>
+        </form>
+
+        <!-- Step 2: chip profile -->
+        <form class="form-step" id="step-profile" novalidate>
+          <p class="profile-intro">
+            you're on the list. three quick taps to help us prioritize. all optional.
+          </p>
+
+          <div class="chip-group">
+            <div class="chip-label">what messaging apps do you use most?</div>
+            <div class="chips" data-field="platform">
+              <button type="button" class="chip">WhatsApp</button>
+              <button type="button" class="chip">iMessage</button>
+              <button type="button" class="chip">Telegram</button>
+              <button type="button" class="chip">all of them</button>
+            </div>
+          </div>
+
+          <div class="chip-group">
+            <div class="chip-label">what drops most often?</div>
+            <div class="chips" data-field="problem">
+              <button type="button" class="chip">things I promised</button>
+              <button type="button" class="chip">things others owe me</button>
+              <button type="button" class="chip">both equally</button>
+            </div>
+          </div>
+
+          <div class="chip-group">
+            <div class="chip-label">how soon?</div>
+            <div class="chips" data-field="timing">
+              <button type="button" class="chip">today</button>
+              <button type="button" class="chip">this week</button>
+              <button type="button" class="chip">just curious</button>
+            </div>
+          </div>
+
+          <div class="chip-actions">
+            <button type="submit" class="btn-primary">send</button>
+            <button type="button" class="link-skip" id="skip-profile">skip</button>
+          </div>
+          <p class="form-error" id="form-error" role="alert" aria-live="polite"></p>
+        </form>
+
+        <!-- Step 3: done -->
+        <div class="form-done" id="step-done">
+          <div class="check">&#10003;</div>
+          <h3>you're in.</h3>
+          <p>watch your inbox. we'll send your install link shortly.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="t-light">
+  <div class="wrap footer-inner">
+    <span class="footer-brand">owe</span>
+    <span>by MS Foundry</span>
+  </div>
+</footer>
+
+<script>
+  // Nav border on scroll
+  const nav = document.getElementById('nav');
+  window.addEventListener('scroll', () => {
+    nav.classList.toggle('scrolled', window.scrollY > 8);
+  }, { passive: true });
+
+  // Synthetic Owe screens — dummy data, no real names
+  const SCREENS = {
+    dashboard: `
+      <div class="screen">
+        <div class="screen-statusbar"><span>9:41</span><span class="icons">&bull;&bull;&bull;</span></div>
+        <div class="screen-header">
+          <span class="screen-brand">owe</span>
+          <span class="screen-meta">12 open</span>
+        </div>
+        <div class="screen-body">
+          <div class="screen-pill-row">
+            <span class="screen-pill active">Open</span>
+            <span class="screen-pill">Resolved</span>
+            <span class="screen-pill">Follow-ups</span>
+          </div>
+          <div class="screen-label">Alex Park</div>
+          <div class="screen-row" style="padding-top:0;">
+            <div class="screen-row-top"><div class="screen-row-name">Send the cap table by Friday</div><div class="screen-row-age">3d</div></div>
+            <div class="screen-row-dir">you owe Alex</div>
+          </div>
+          <div class="screen-row">
+            <div class="screen-row-top"><div class="screen-row-name">Intro to the Helio team</div><div class="screen-row-age stale">5d</div></div>
+            <div class="screen-row-dir">Alex owes you</div>
+          </div>
+          <div class="screen-label" style="margin-top:6px;">Sam Rivera</div>
+          <div class="screen-row" style="padding-top:0;">
+            <div class="screen-row-top"><div class="screen-row-name">Review the Q3 budget draft</div><div class="screen-row-age">1d</div></div>
+            <div class="screen-row-dir">you owe Sam</div>
+          </div>
+          <div class="screen-row">
+            <div class="screen-row-top"><div class="screen-row-name">Share the vendor shortlist</div><div class="screen-row-age stale">6d</div></div>
+            <div class="screen-row-dir">Sam owes you</div>
+          </div>
+        </div>
+      </div>
+    `,
+    followups: `
+      <div class="screen">
+        <div class="screen-statusbar"><span>9:41</span><span class="icons">&bull;&bull;&bull;</span></div>
+        <div class="screen-header">
+          <span class="screen-brand">follow-ups</span>
+          <span class="screen-meta">4 waiting</span>
+        </div>
+        <div class="screen-body">
+          <div class="screen-pill-row">
+            <span class="screen-pill active">All</span>
+            <span class="screen-pill">Recent</span>
+            <span class="screen-pill">3-7 days</span>
+            <span class="screen-pill">7+ days</span>
+          </div>
+          <div class="screen-row">
+            <div class="screen-row-top"><div class="screen-row-name">Alex Park</div><div class="screen-row-age" style="color:var(--danger);">5d no reply</div></div>
+            <div class="screen-row-text">"Intro to the Helio team"</div>
+            <div class="screen-mini-actions"><span>Draft nudge</span><span>Dismiss</span></div>
+          </div>
+          <div class="screen-row">
+            <div class="screen-row-top"><div class="screen-row-name">Sam Rivera</div><div class="screen-row-age stale">6d no reply</div></div>
+            <div class="screen-row-text">"Share the vendor shortlist"</div>
+            <div class="screen-mini-actions"><span>Draft nudge</span><span>Dismiss</span></div>
+          </div>
+          <div class="screen-row">
+            <div class="screen-row-top"><div class="screen-row-name">Jordan Lee</div><div class="screen-row-age" style="color:var(--danger);">9d no reply</div></div>
+            <div class="screen-row-text">"Feedback on the Q2 plan"</div>
+            <div class="screen-mini-actions"><span>Draft nudge</span><span>Dismiss</span></div>
+          </div>
+        </div>
+      </div>
+    `,
+    resolved: `
+      <div class="screen">
+        <div class="screen-statusbar"><span>9:41</span><span class="icons">&bull;&bull;&bull;</span></div>
+        <div class="screen-header">
+          <span class="screen-brand">resolved</span>
+          <span class="screen-meta">this week</span>
+        </div>
+        <div class="screen-body">
+          <div class="screen-row">
+            <div class="screen-row-top"><div class="screen-row-name">Morgan Chen</div><div style="font-size:10px;color:var(--accent);">done</div></div>
+            <div class="screen-row-text">"Draft the offer letter and send for review"</div>
+            <div class="screen-badge">auto-closed by owe</div>
+          </div>
+          <div class="screen-row">
+            <div class="screen-row-top"><div class="screen-row-name">Alex Park</div><div style="font-size:10px;color:var(--accent);">done</div></div>
+            <div class="screen-row-text">"Share the updated term sheet"</div>
+            <div class="screen-badge">auto-closed by owe</div>
+          </div>
+          <div class="screen-row">
+            <div class="screen-row-top"><div class="screen-row-name">Jamie Torres</div><div style="font-size:10px;color:var(--ink-3);">dismissed</div></div>
+            <div class="screen-row-text">"Let's grab coffee next week"</div>
+          </div>
+          <div class="screen-row">
+            <div class="screen-row-top"><div class="screen-row-name">Sam Rivera</div><div style="font-size:10px;color:var(--accent);">done</div></div>
+            <div class="screen-row-text">"Send the signed NDA back"</div>
+          </div>
+        </div>
+      </div>
+    `,
+    desktop: `
+      <div class="screen screen-desktop">
+        <div class="screen-header">
+          <span class="screen-brand">owe</span>
+          <span class="screen-meta">12 open &middot; 3 follow-ups</span>
+        </div>
+        <div class="screen-body">
+          <div class="screen-pill-row" style="margin-bottom:8px;">
+            <span class="screen-pill active">Open</span>
+            <span class="screen-pill">Resolved</span>
+            <span class="screen-pill">Follow-ups</span>
+            <span class="screen-pill">Favorites</span>
+          </div>
+          <div class="screen-label">Alex Park</div>
+          <div class="screen-row" style="padding-top:0;">
+            <div class="screen-row-top"><div class="screen-row-name">Send the cap table by Friday</div><div class="screen-row-age">3d</div></div>
+            <div class="screen-row-dir" style="font-size:10px;color:var(--ink-3);">you owe Alex</div>
+          </div>
+          <div class="screen-row">
+            <div class="screen-row-top"><div class="screen-row-name">Intro to the Helio team</div><div class="screen-row-age stale">5d</div></div>
+            <div class="screen-row-dir" style="font-size:10px;color:var(--ink-3);">Alex owes you</div>
+            <div class="screen-mini-actions"><span>Resolve</span><span>Nudge</span><span>Dismiss</span></div>
+          </div>
+          <div class="screen-label" style="margin-top:8px;">Sam Rivera</div>
+          <div class="screen-row" style="padding-top:0;">
+            <div class="screen-row-top"><div class="screen-row-name">Review the Q3 budget draft</div><div class="screen-row-age">1d</div></div>
+            <div class="screen-row-dir" style="font-size:10px;color:var(--ink-3);">you owe Sam</div>
+            <div class="screen-mini-actions"><span>Resolve</span><span>Dismiss</span></div>
+          </div>
+        </div>
+      </div>
+    `,
+  };
+
+  // Inject screens into phone tracks and the desktop frame
+  document.querySelectorAll('.phone-track').forEach(track => {
+    const order = (track.dataset.order || '').split(',').map(s => s.trim()).filter(Boolean);
+    track.innerHTML = order.map(name => SCREENS[name] || '').join('');
+  });
+  const desktopFrame = document.querySelector('[data-screen="desktop"]');
+  if (desktopFrame) desktopFrame.innerHTML = SCREENS.desktop;
+
+  // Phone marquee rotation
+  (function () {
+    const tracks = document.querySelectorAll('.phone-track');
+    let idx = 0;
+    const count = tracks.length ? tracks[0].children.length : 0;
+    if (!count) return;
+    setInterval(() => {
+      idx = (idx + 1) % count;
+      tracks.forEach(t => {
+        t.style.transform = `translateY(-${idx * 100}%)`;
+      });
+    }, 3400);
+  })();
+
+  // Form progressive reveal
+  const FORMSPREE_ENDPOINT = 'https://formspree.io/f/mjglvnja';
+
+  const stepEmail = document.getElementById('step-email');
+  const stepProfile = document.getElementById('step-profile');
+  const stepDone = document.getElementById('step-done');
+  const skipBtn = document.getElementById('skip-profile');
+  const errEl = document.getElementById('form-error');
+
+  let prospectEmail = '';
+
+  function show(el) {
+    [stepEmail, stepProfile, stepDone].forEach(s => s.classList.remove('active'));
+    el.classList.add('active');
+  }
+
+  function setError(msg) {
+    if (!errEl) return;
+    errEl.textContent = msg || '';
+    errEl.style.display = msg ? 'block' : 'none';
+  }
+
+  stepEmail.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const email = document.getElementById('email').value.trim();
+    if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+      document.getElementById('email').focus();
+      return;
+    }
+    prospectEmail = email;
+    show(stepProfile);
+  });
+
+  document.querySelectorAll('.chips').forEach(group => {
+    group.addEventListener('click', (e) => {
+      const chip = e.target.closest('.chip');
+      if (!chip) return;
+      group.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
+      chip.classList.add('selected');
+    });
+  });
+
+  async function submitProspect(includeProfile) {
+    setError('');
+    const submitBtn = stepProfile.querySelector('button[type=submit]');
+    const originalText = submitBtn.textContent;
+    submitBtn.disabled = true;
+    if (skipBtn) skipBtn.disabled = true;
+    submitBtn.textContent = 'sending…';
+
+    const payload = {
+      email: prospectEmail,
+      platform: '',
+      problem: '',
+      timing: '',
+      _subject: `owe access request — ${prospectEmail}`,
+    };
+    if (includeProfile) {
+      document.querySelectorAll('.chips').forEach(g => {
+        const selected = g.querySelector('.chip.selected');
+        payload[g.dataset.field] = selected ? selected.textContent.trim() : '';
+      });
+    }
+
+    try {
+      const res = await fetch(FORMSPREE_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      show(stepDone);
+    } catch (err) {
+      submitBtn.disabled = false;
+      if (skipBtn) skipBtn.disabled = false;
+      submitBtn.textContent = originalText;
+      setError("couldn’t send. please try again.");
+    }
+  }
+
+  stepProfile.addEventListener('submit', (e) => {
+    e.preventDefault();
+    submitProspect(true);
+  });
+
+  skipBtn.addEventListener('click', () => submitProspect(false));
+</script>
+</body>
+</html>

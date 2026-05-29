@@ -1,0 +1,28 @@
+# Binaries
+owe
+commit
+*.exe
+
+# Go build
+.build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# macOS
+.DS_Store
+Thumbs.db
+
+# Data directory (local user data)
+.owe/
+.commit/
+
+# Claude Code
+.claude/
+
+# Environment
+.env
+*.key

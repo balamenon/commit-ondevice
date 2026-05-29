@@ -1,0 +1,85 @@
+package extraction
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+)
+
+const claudeAPIURL = "https://api.anthropic.com/v1/messages"
+
+type claudeRequest struct {
+	Model     string           `json:"model"`
+	MaxTokens int              `json:"max_tokens"`
+	Messages  []claudeMessage  `json:"messages"`
+}
+
+type claudeMessage struct {
+	Role    string `json:"role"`
+	Content string `json:"content"`
+}
+
+type claudeResponse struct {
+	Content []struct {
+		Text string `json:"text"`
+	} `json:"content"`
+	Error *struct {
+		Message string `json:"message"`
+	} `json:"error"`
+}
+
+func callClaude(ctx context.Context, apiKey, prompt string) (string, error) {
+	reqBody := claudeRequest{
+		Model:     "claude-sonnet-4-20250514",
+		MaxTokens: 2048,
+		Messages: []claudeMessage{
+			{Role: "user", Content: prompt},
+		},
+	}
+
+	body, err := json.Marshal(reqBody)
+	if err != nil {
+		return "", fmt.Errorf("marshal request: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "POST", claudeAPIURL, bytes.NewReader(body))
+	if err != nil {
+		return "", fmt.Errorf("create request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("x-api-key", apiKey)
+	req.Header.Set("anthropic-version", "2023-06-01")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("api call: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("read response: %w", err)
+	}
+
+	if resp.StatusCode != 200 {
+		return "", fmt.Errorf("api error %d: %s", resp.StatusCode, string(respBody))
+	}
+
+	var result claudeResponse
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		return "", fmt.Errorf("parse response: %w", err)
+	}
+
+	if result.Error != nil {
+		return "", fmt.Errorf("claude error: %s", result.Error.Message)
+	}
+
+	if len(result.Content) == 0 {
+		return "", fmt.Errorf("empty response from claude")
+	}
+
+	return result.Content[0].Text, nil
+}
