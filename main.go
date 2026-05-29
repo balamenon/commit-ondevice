@@ -71,8 +71,8 @@ func dataDirectory() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	newDir := filepath.Join(home, ".owe")
-	oldDir := filepath.Join(home, ".commit")
+	newDir := filepath.Join(home, ".commit")
+	oldDir := filepath.Join(home, ".owe")
 	if _, err := os.Stat(newDir); os.IsNotExist(err) {
 		if _, err := os.Stat(oldDir); err == nil {
 			os.Rename(oldDir, newDir)
