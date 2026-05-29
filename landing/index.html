@@ -376,8 +376,8 @@
 
   /* ===== Synthetic Owe screen mocks ===== */
   .screen {
-    background: var(--canvas);
-    color: var(--ink);
+    background: #f5f6f8;
+    color: #1a1f25;
     font-family: var(--sans);
     font-size: 11px;
     line-height: 1.4;
@@ -385,168 +385,168 @@
     display: flex;
     flex-direction: column;
   }
-  .screen-statusbar {
-    height: 38px;
-    flex-shrink: 0;
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-    padding: 0 18px 4px;
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--ink);
-  }
-  .screen-statusbar .icons { letter-spacing: 1px; }
-  .screen-header {
-    padding: 8px 16px 6px;
+  .s-topbar {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid var(--line);
+    padding: 8px 12px;
+    border-bottom: 1px solid #c8ced6;
+    background: #fff;
   }
-  .screen-brand {
-    font-family: var(--serif);
-    font-size: 13px;
-    color: var(--ink);
-    letter-spacing: -0.01em;
-  }
-  .screen-meta { font-size: 10px; color: var(--ink-3); }
-  .screen-body {
-    flex: 1;
-    padding: 14px 14px 18px;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-  .screen-label {
-    font-size: 9px;
-    font-weight: 600;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--ink-3);
-  }
-  .screen-card {
-    background: var(--surface);
-    border: 1px solid var(--line);
-    border-radius: 10px;
-    padding: 10px 12px;
-  }
-  .screen-card + .screen-card { margin-top: 8px; }
-  .screen-card-eyebrow {
-    font-size: 9px;
-    font-weight: 600;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--ink-3);
-    margin-bottom: 4px;
+  .s-topbar-left { display: flex; align-items: center; gap: 6px; }
+  .s-topbar-logo { font-family: var(--serif); font-size: 13px; font-weight: 500; color: #1a1f25; }
+  .s-topbar-status { display: flex; align-items: center; gap: 4px; font-size: 9px; color: #6e7681; }
+  .s-topbar-dot { width: 5px; height: 5px; border-radius: 50%; background: #1a6b3a; }
+  .s-topbar-right { font-size: 9px; color: #6e7681; }
+  .s-search {
+    margin: 8px 12px 0;
+    padding: 6px 10px;
+    border: 1px solid #c8ced6;
+    border-radius: 6px;
+    background: #fff;
+    font-size: 10px;
+    color: #9ea7b3;
     display: flex;
     align-items: center;
     gap: 6px;
   }
-  .screen-card-eyebrow .dot {
-    width: 6px; height: 6px; border-radius: 50%;
-    background: var(--warn);
-  }
-  .screen-card-eyebrow.danger .dot { background: var(--danger); }
-  .screen-card-eyebrow.accent .dot { background: var(--accent); }
-  .screen-card-title {
-    font-size: 12px;
-    color: var(--ink);
-    line-height: 1.35;
-    font-weight: 500;
-  }
-  .screen-card-body {
-    font-size: 11px;
-    color: var(--ink-2);
-    line-height: 1.45;
-  }
-  .screen-card-time {
-    font-size: 9px;
-    color: var(--ink-3);
-    margin-top: 6px;
-  }
-  .screen-card-meta {
-    font-size: 10px;
-    color: var(--ink-3);
-    margin-top: 3px;
-  }
-  .screen-pill-row { display: flex; gap: 6px; flex-wrap: wrap; }
-  .screen-pill {
-    font-size: 10px;
-    color: var(--ink-2);
-    background: var(--surface);
-    border: 1px solid var(--line);
-    padding: 4px 10px;
-    border-radius: 999px;
-  }
-  .screen-pill.active {
-    background: var(--ink);
-    color: var(--canvas);
-    border-color: var(--ink);
-  }
-  .screen-mini-actions { display: flex; gap: 6px; margin-top: 8px; }
-  .screen-mini-actions span {
-    font-size: 10px;
-    color: var(--ink-2);
-    background: var(--canvas);
-    border: 1px solid var(--line);
-    padding: 4px 10px;
-    border-radius: 6px;
-  }
-  .screen-row {
+  .s-tabs {
     display: flex;
-    flex-direction: column;
-    padding: 10px 0;
-    border-bottom: 1px solid var(--line);
-  }
-  .screen-row-top {
-    display: flex; justify-content: space-between; align-items: baseline;
-  }
-  .screen-row-name {
-    font-size: 12px; font-weight: 500; color: var(--ink);
-  }
-  .screen-row-age {
-    font-size: 10px; color: var(--danger);
-  }
-  .screen-row-age.stale { color: var(--warn); }
-  .screen-row-text {
-    font-size: 11px; color: var(--ink-2);
-    margin-top: 3px; line-height: 1.4;
-  }
-  .screen-row-dir {
-    font-size: 9px; color: var(--ink-3);
-    margin-top: 2px;
-  }
-  .screen-badge {
-    display: inline-block;
+    gap: 2px;
+    padding: 8px 12px 0;
     font-size: 9px;
-    padding: 2px 6px;
+    font-weight: 500;
+    color: #6e7681;
+  }
+  .s-tab {
+    padding: 4px 8px;
     border-radius: 4px;
-    background: rgba(127, 170, 141, 0.15);
-    color: var(--accent);
-    margin-top: 4px;
+    display: flex; align-items: center; gap: 3px;
   }
-
-  /* Desktop-flavored screen */
-  .screen-desktop { padding: 18px 0 0; font-size: 12px; line-height: 1.5; }
-  .screen-desktop .screen-header {
-    border-bottom: 1px solid var(--line);
-    padding: 0 28px 12px;
+  .s-tab.active { background: #1a1f25; color: #f5f6f8; }
+  .s-tab .cnt {
+    font-size: 8px;
+    background: #eceef2;
+    padding: 1px 5px;
+    border-radius: 8px;
+    color: #6e7681;
   }
-  .screen-desktop .screen-body {
-    max-width: 540px;
-    margin: 0 auto;
-    padding: 24px 28px;
+  .s-tab.active .cnt { background: rgba(255,255,255,0.2); color: #f5f6f8; }
+  .s-stats {
+    display: flex;
+    gap: 12px;
+    padding: 8px 12px;
+    font-size: 9px;
+    color: #6e7681;
+    border-bottom: 1px solid #eceef2;
+  }
+  .s-stat-val { font-size: 14px; font-weight: 500; color: #1a1f25; }
+  .s-body {
     flex: 1;
+    overflow: hidden;
+    padding: 0 12px 12px;
   }
-  .screen-desktop .screen-label { font-size: 10px; }
-  .screen-desktop .screen-card { padding: 14px 16px; border-radius: 12px; }
-  .screen-desktop .screen-card-title { font-size: 14px; }
-  .screen-desktop .screen-card-body { font-size: 12px; }
-  .screen-desktop .screen-row-name { font-size: 13px; }
-  .screen-desktop .screen-row-text { font-size: 12px; }
-  .screen-desktop .screen-row-age { font-size: 11px; }
+  .s-group-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0 4px;
+  }
+  .s-group-left { display: flex; align-items: center; gap: 6px; }
+  .s-avatar {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: #eceef2;
+    color: #6e7681;
+    font-size: 8px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .s-group-name { font-size: 11px; font-weight: 500; color: #1a1f25; }
+  .s-group-meta { font-size: 9px; color: #9ea7b3; }
+  .s-group-badge {
+    font-size: 8px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 3px;
+  }
+  .s-group-badge.you-owe { color: #a12535; background: #f4e4e6; }
+  .s-group-badge.they-owe { color: #1a6b3a; background: #dceee2; }
+  .s-card {
+    background: #fff;
+    border: 1px solid #c8ced6;
+    padding: 8px 10px;
+  }
+  .s-card:first-of-type { border-radius: 6px 6px 0 0; }
+  .s-card:last-of-type { border-radius: 0 0 6px 6px; }
+  .s-card:only-of-type { border-radius: 6px; }
+  .s-card + .s-card { border-top: none; }
+  .s-card-title { font-size: 10.5px; font-weight: 500; color: #1a1f25; line-height: 1.4; }
+  .s-card-context { font-size: 9px; color: #444b55; margin-top: 2px; }
+  .s-card-quote {
+    font-size: 8.5px;
+    color: #6e7681;
+    font-style: italic;
+    background: #eceef2;
+    border-radius: 4px;
+    padding: 4px 8px;
+    margin-top: 4px;
+    line-height: 1.4;
+  }
+  .s-card-meta { display: flex; align-items: center; gap: 6px; margin-top: 5px; flex-wrap: wrap; }
+  .s-dir {
+    font-size: 8px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    padding: 1px 6px;
+    border-radius: 3px;
+  }
+  .s-dir.you-owe { color: #a12535; background: #f4e4e6; }
+  .s-dir.they-owe { color: #1a6b3a; background: #dceee2; }
+  .s-age { font-size: 8px; color: #9ea7b3; }
+  .s-age.stale { color: #9a7d3a; }
+  .s-age.overdue { color: #a12535; }
+  .s-actions { display: flex; gap: 4px; margin-top: 6px; }
+  .s-actions span {
+    font-size: 8px;
+    color: #444b55;
+    border: 1px solid #c8ced6;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: #fff;
+  }
+  .s-auto-badge {
+    font-size: 7.5px;
+    padding: 1px 5px;
+    border-radius: 3px;
+    background: #dceee2;
+    color: #1a6b3a;
+  }
+  .s-resolved-title {
+    font-size: 10.5px;
+    font-weight: 500;
+    color: #9ea7b3;
+    text-decoration: line-through;
+    line-height: 1.4;
+  }
+  /* Desktop variant */
+  .screen-desktop .s-topbar { padding: 10px 24px; }
+  .screen-desktop .s-topbar-logo { font-size: 15px; }
+  .screen-desktop .s-search { margin: 10px 24px 0; padding: 8px 14px; font-size: 12px; }
+  .screen-desktop .s-tabs { padding: 10px 24px 0; font-size: 10px; }
+  .screen-desktop .s-stats { padding: 10px 24px; font-size: 10px; }
+  .screen-desktop .s-stat-val { font-size: 16px; }
+  .screen-desktop .s-body { padding: 0 24px 24px; }
+  .screen-desktop .s-group-name { font-size: 13px; }
+  .screen-desktop .s-card-title { font-size: 12.5px; }
+  .screen-desktop .s-card-context { font-size: 11px; }
+  .screen-desktop .s-card-quote { font-size: 10px; }
+  .screen-desktop .s-dir { font-size: 9px; }
+  .screen-desktop .s-age { font-size: 9px; }
+  .screen-desktop .s-actions span { font-size: 9px; }
   .caption {
     margin-top: 40px;
     text-align: center;
@@ -941,131 +941,208 @@
     nav.classList.toggle('scrolled', window.scrollY > 8);
   }, { passive: true });
 
-  // Synthetic Owe screens — dummy data, no real names
+  // Synthetic Owe screens — matches the real app layout with dummy data
   const SCREENS = {
     dashboard: `
       <div class="screen">
-        <div class="screen-statusbar"><span>9:41</span><span class="icons">&bull;&bull;&bull;</span></div>
-        <div class="screen-header">
-          <span class="screen-brand">owe</span>
-          <span class="screen-meta">12 open</span>
+        <div class="s-topbar">
+          <div class="s-topbar-left"><span class="s-topbar-logo">Owe</span><div class="s-topbar-status"><div class="s-topbar-dot"></div>Connected</div></div>
+          <div class="s-topbar-right">Settings</div>
         </div>
-        <div class="screen-body">
-          <div class="screen-pill-row">
-            <span class="screen-pill active">Open</span>
-            <span class="screen-pill">Resolved</span>
-            <span class="screen-pill">Follow-ups</span>
+        <div class="s-search">Search commitments, people, or groups...</div>
+        <div class="s-tabs">
+          <div class="s-tab active">All <span class="cnt">12</span></div>
+          <div class="s-tab">Follow ups <span class="cnt">3</span></div>
+          <div class="s-tab">I owe <span class="cnt">6</span></div>
+          <div class="s-tab">They owe <span class="cnt">6</span></div>
+        </div>
+        <div class="s-stats">
+          <div><span class="s-stat-val">12</span> open</div>
+          <div><span class="s-stat-val">6</span> you owe</div>
+          <div><span class="s-stat-val">6</span> they owe</div>
+        </div>
+        <div class="s-body">
+          <div class="s-group-header">
+            <div class="s-group-left"><div class="s-avatar">AP</div><span class="s-group-name">Alex Park</span><span class="s-group-meta">2 open</span></div>
+            <div><span class="s-group-badge you-owe">1 you owe</span> <span class="s-group-badge they-owe">1 they owe</span></div>
           </div>
-          <div class="screen-label">Alex Park</div>
-          <div class="screen-row" style="padding-top:0;">
-            <div class="screen-row-top"><div class="screen-row-name">Send the cap table by Friday</div><div class="screen-row-age">3d</div></div>
-            <div class="screen-row-dir">you owe Alex</div>
+          <div class="s-card" style="border-radius:6px 6px 0 0;">
+            <div class="s-card-title">Send the cap table by Friday</div>
+            <div class="s-card-context">Alex needs the updated cap table for the board deck.</div>
+            <div class="s-card-quote">"I'll send the cap table by Friday" May 26, 3:12 PM</div>
+            <div class="s-card-meta"><span class="s-dir you-owe">You owe</span><span class="s-age">Friday</span><span class="s-age stale">3d</span></div>
           </div>
-          <div class="screen-row">
-            <div class="screen-row-top"><div class="screen-row-name">Intro to the Helio team</div><div class="screen-row-age stale">5d</div></div>
-            <div class="screen-row-dir">Alex owes you</div>
+          <div class="s-card" style="border-radius:0 0 6px 6px;">
+            <div class="s-card-title">Intro to the Helio team</div>
+            <div class="s-card-quote">"will introduce you to the Helio team this week" May 22, 11:05 AM</div>
+            <div class="s-card-meta"><span class="s-dir they-owe">They owe</span><span class="s-age overdue">5d</span></div>
           </div>
-          <div class="screen-label" style="margin-top:6px;">Sam Rivera</div>
-          <div class="screen-row" style="padding-top:0;">
-            <div class="screen-row-top"><div class="screen-row-name">Review the Q3 budget draft</div><div class="screen-row-age">1d</div></div>
-            <div class="screen-row-dir">you owe Sam</div>
+          <div class="s-group-header">
+            <div class="s-group-left"><div class="s-avatar">SR</div><span class="s-group-name">Sam Rivera</span><span class="s-group-meta">2 open</span></div>
+            <div><span class="s-group-badge you-owe">1 you owe</span> <span class="s-group-badge they-owe">1 they owe</span></div>
           </div>
-          <div class="screen-row">
-            <div class="screen-row-top"><div class="screen-row-name">Share the vendor shortlist</div><div class="screen-row-age stale">6d</div></div>
-            <div class="screen-row-dir">Sam owes you</div>
+          <div class="s-card" style="border-radius:6px 6px 0 0;">
+            <div class="s-card-title">Review the Q3 budget draft</div>
+            <div class="s-card-quote">"I'll review the Q3 budget and send comments" May 27, 9:30 AM</div>
+            <div class="s-card-meta"><span class="s-dir you-owe">You owe</span><span class="s-age">1d</span></div>
+          </div>
+          <div class="s-card" style="border-radius:0 0 6px 6px;">
+            <div class="s-card-title">Share the vendor shortlist</div>
+            <div class="s-card-meta"><span class="s-dir they-owe">They owe</span><span class="s-age stale">6d</span></div>
           </div>
         </div>
       </div>
     `,
     followups: `
       <div class="screen">
-        <div class="screen-statusbar"><span>9:41</span><span class="icons">&bull;&bull;&bull;</span></div>
-        <div class="screen-header">
-          <span class="screen-brand">follow-ups</span>
-          <span class="screen-meta">4 waiting</span>
+        <div class="s-topbar">
+          <div class="s-topbar-left"><span class="s-topbar-logo">Owe</span><div class="s-topbar-status"><div class="s-topbar-dot"></div>Connected</div></div>
+          <div class="s-topbar-right">Settings</div>
         </div>
-        <div class="screen-body">
-          <div class="screen-pill-row">
-            <span class="screen-pill active">All</span>
-            <span class="screen-pill">Recent</span>
-            <span class="screen-pill">3-7 days</span>
-            <span class="screen-pill">7+ days</span>
+        <div class="s-tabs">
+          <div class="s-tab">All <span class="cnt">12</span></div>
+          <div class="s-tab active">Follow ups <span class="cnt">3</span></div>
+          <div class="s-tab">I owe</div>
+          <div class="s-tab">They owe</div>
+        </div>
+        <div class="s-tabs" style="padding-top:4px;">
+          <div class="s-tab active" style="font-size:8px;">All</div>
+          <div class="s-tab" style="font-size:8px;">Recent</div>
+          <div class="s-tab" style="font-size:8px;">3-7 days</div>
+          <div class="s-tab" style="font-size:8px;">7+ days</div>
+        </div>
+        <div class="s-body" style="padding-top:8px;">
+          <div class="s-group-header">
+            <div class="s-group-left"><div class="s-avatar">AP</div><span class="s-group-name">Alex Park</span></div>
+            <span class="s-age overdue">5d no reply</span>
           </div>
-          <div class="screen-row">
-            <div class="screen-row-top"><div class="screen-row-name">Alex Park</div><div class="screen-row-age" style="color:var(--danger);">5d no reply</div></div>
-            <div class="screen-row-text">"Intro to the Helio team"</div>
-            <div class="screen-mini-actions"><span>Draft nudge</span><span>Dismiss</span></div>
+          <div class="s-card" style="border-radius:6px;">
+            <div class="s-card-title">Intro to the Helio team</div>
+            <div class="s-card-quote">"will introduce you to the Helio team this week" May 22</div>
+            <div class="s-card-meta"><span class="s-dir they-owe">They owe</span><span class="s-age overdue">5d</span></div>
+            <div class="s-actions"><span>Draft nudge</span><span>Dismiss</span></div>
           </div>
-          <div class="screen-row">
-            <div class="screen-row-top"><div class="screen-row-name">Sam Rivera</div><div class="screen-row-age stale">6d no reply</div></div>
-            <div class="screen-row-text">"Share the vendor shortlist"</div>
-            <div class="screen-mini-actions"><span>Draft nudge</span><span>Dismiss</span></div>
+          <div class="s-group-header">
+            <div class="s-group-left"><div class="s-avatar">SR</div><span class="s-group-name">Sam Rivera</span></div>
+            <span class="s-age stale">6d no reply</span>
           </div>
-          <div class="screen-row">
-            <div class="screen-row-top"><div class="screen-row-name">Jordan Lee</div><div class="screen-row-age" style="color:var(--danger);">9d no reply</div></div>
-            <div class="screen-row-text">"Feedback on the Q2 plan"</div>
-            <div class="screen-mini-actions"><span>Draft nudge</span><span>Dismiss</span></div>
+          <div class="s-card" style="border-radius:6px;">
+            <div class="s-card-title">Share the vendor shortlist</div>
+            <div class="s-card-quote">"I'll share the vendor shortlist by Monday" May 21</div>
+            <div class="s-card-meta"><span class="s-dir they-owe">They owe</span><span class="s-age stale">6d</span></div>
+            <div class="s-actions"><span>Draft nudge</span><span>Dismiss</span></div>
+          </div>
+          <div class="s-group-header">
+            <div class="s-group-left"><div class="s-avatar">JL</div><span class="s-group-name">Jordan Lee</span></div>
+            <span class="s-age overdue">9d no reply</span>
+          </div>
+          <div class="s-card" style="border-radius:6px;">
+            <div class="s-card-title">Feedback on the Q2 plan</div>
+            <div class="s-card-quote">"feedback on the Q2 plan, end of week" May 18</div>
+            <div class="s-card-meta"><span class="s-dir they-owe">They owe</span><span class="s-age overdue">9d</span></div>
+            <div class="s-actions"><span>Draft nudge</span><span>Dismiss</span></div>
           </div>
         </div>
       </div>
     `,
     resolved: `
       <div class="screen">
-        <div class="screen-statusbar"><span>9:41</span><span class="icons">&bull;&bull;&bull;</span></div>
-        <div class="screen-header">
-          <span class="screen-brand">resolved</span>
-          <span class="screen-meta">this week</span>
+        <div class="s-topbar">
+          <div class="s-topbar-left"><span class="s-topbar-logo">Owe</span><div class="s-topbar-status"><div class="s-topbar-dot"></div>Connected</div></div>
+          <div class="s-topbar-right">Settings</div>
         </div>
-        <div class="screen-body">
-          <div class="screen-row">
-            <div class="screen-row-top"><div class="screen-row-name">Morgan Chen</div><div style="font-size:10px;color:var(--accent);">done</div></div>
-            <div class="screen-row-text">"Draft the offer letter and send for review"</div>
-            <div class="screen-badge">auto-closed by owe</div>
+        <div class="s-tabs">
+          <div class="s-tab">All <span class="cnt">12</span></div>
+          <div class="s-tab">Follow ups</div>
+          <div class="s-tab">I owe</div>
+          <div class="s-tab active">Resolved <span class="cnt">25</span></div>
+        </div>
+        <div class="s-body" style="padding-top:8px;">
+          <div class="s-group-header">
+            <div class="s-group-left"><div class="s-avatar">MC</div><span class="s-group-name">Morgan Chen</span><span class="s-group-meta">1 closed</span></div>
           </div>
-          <div class="screen-row">
-            <div class="screen-row-top"><div class="screen-row-name">Alex Park</div><div style="font-size:10px;color:var(--accent);">done</div></div>
-            <div class="screen-row-text">"Share the updated term sheet"</div>
-            <div class="screen-badge">auto-closed by owe</div>
+          <div class="s-card" style="border-radius:6px;">
+            <div class="s-resolved-title">Draft the offer letter and send for review</div>
+            <div class="s-card-meta"><span class="s-dir you-owe">You owe</span><span class="s-auto-badge">auto-closed by Owe</span><span class="s-age">2d ago</span></div>
           </div>
-          <div class="screen-row">
-            <div class="screen-row-top"><div class="screen-row-name">Jamie Torres</div><div style="font-size:10px;color:var(--ink-3);">dismissed</div></div>
-            <div class="screen-row-text">"Let's grab coffee next week"</div>
+          <div class="s-group-header">
+            <div class="s-group-left"><div class="s-avatar">AP</div><span class="s-group-name">Alex Park</span><span class="s-group-meta">1 closed</span></div>
           </div>
-          <div class="screen-row">
-            <div class="screen-row-top"><div class="screen-row-name">Sam Rivera</div><div style="font-size:10px;color:var(--accent);">done</div></div>
-            <div class="screen-row-text">"Send the signed NDA back"</div>
+          <div class="s-card" style="border-radius:6px;">
+            <div class="s-resolved-title">Share the updated term sheet</div>
+            <div class="s-card-meta"><span class="s-dir they-owe">They owe</span><span class="s-auto-badge">auto-closed by Owe</span><span class="s-age">3d ago</span></div>
+          </div>
+          <div class="s-group-header">
+            <div class="s-group-left"><div class="s-avatar">JT</div><span class="s-group-name">Jamie Torres</span><span class="s-group-meta">1 closed</span></div>
+          </div>
+          <div class="s-card" style="border-radius:6px;">
+            <div class="s-resolved-title">Let's grab coffee next week</div>
+            <div class="s-card-meta"><span class="s-age">dismissed &middot; 4d ago</span></div>
+          </div>
+          <div class="s-group-header">
+            <div class="s-group-left"><div class="s-avatar">SR</div><span class="s-group-name">Sam Rivera</span><span class="s-group-meta">1 closed</span></div>
+          </div>
+          <div class="s-card" style="border-radius:6px;">
+            <div class="s-resolved-title">Send the signed NDA back</div>
+            <div class="s-card-meta"><span class="s-dir you-owe">You owe</span><span class="s-auto-badge">auto-closed by Owe</span><span class="s-age">5d ago</span></div>
           </div>
         </div>
       </div>
     `,
     desktop: `
       <div class="screen screen-desktop">
-        <div class="screen-header">
-          <span class="screen-brand">owe</span>
-          <span class="screen-meta">12 open &middot; 3 follow-ups</span>
+        <div class="s-topbar">
+          <div class="s-topbar-left"><span class="s-topbar-logo">Owe</span><div class="s-topbar-status"><div class="s-topbar-dot"></div>Connected</div></div>
+          <div class="s-topbar-right">Settings</div>
         </div>
-        <div class="screen-body">
-          <div class="screen-pill-row" style="margin-bottom:8px;">
-            <span class="screen-pill active">Open</span>
-            <span class="screen-pill">Resolved</span>
-            <span class="screen-pill">Follow-ups</span>
-            <span class="screen-pill">Favorites</span>
+        <div class="s-search">Search commitments, people, or groups...</div>
+        <div class="s-tabs">
+          <div class="s-tab active">All <span class="cnt">12</span></div>
+          <div class="s-tab">Follow ups <span class="cnt">3</span></div>
+          <div class="s-tab">Favorites <span class="cnt">5</span></div>
+          <div class="s-tab">I owe <span class="cnt">6</span></div>
+          <div class="s-tab">They owe <span class="cnt">6</span></div>
+          <div class="s-tab">Resolved <span class="cnt">25</span></div>
+        </div>
+        <div class="s-stats">
+          <div><span class="s-stat-val">12</span> open</div>
+          <div><span class="s-stat-val">6</span> you owe</div>
+          <div><span class="s-stat-val">6</span> they owe</div>
+        </div>
+        <div class="s-body">
+          <div class="s-group-header">
+            <div class="s-group-left"><div class="s-avatar">AP</div><span class="s-group-name">Alex Park</span><span class="s-group-meta">2 open</span></div>
+            <div><span class="s-group-badge you-owe">1 you owe</span> <span class="s-group-badge they-owe">1 they owe</span></div>
           </div>
-          <div class="screen-label">Alex Park</div>
-          <div class="screen-row" style="padding-top:0;">
-            <div class="screen-row-top"><div class="screen-row-name">Send the cap table by Friday</div><div class="screen-row-age">3d</div></div>
-            <div class="screen-row-dir" style="font-size:10px;color:var(--ink-3);">you owe Alex</div>
+          <div class="s-card" style="border-radius:6px 6px 0 0;">
+            <div class="s-card-title">Send the cap table by Friday</div>
+            <div class="s-card-context">Alex needs the updated cap table for the board deck.</div>
+            <div class="s-card-quote">"I'll send the cap table by Friday" May 26, 3:12 PM</div>
+            <div class="s-card-meta"><span class="s-dir you-owe">You owe</span><span class="s-age">Friday</span><span class="s-age stale">3d</span></div>
+            <div class="s-actions"><span>Reply</span><span>Done</span><span>Dismiss</span></div>
           </div>
-          <div class="screen-row">
-            <div class="screen-row-top"><div class="screen-row-name">Intro to the Helio team</div><div class="screen-row-age stale">5d</div></div>
-            <div class="screen-row-dir" style="font-size:10px;color:var(--ink-3);">Alex owes you</div>
-            <div class="screen-mini-actions"><span>Resolve</span><span>Nudge</span><span>Dismiss</span></div>
+          <div class="s-card" style="border-radius:0 0 6px 6px;">
+            <div class="s-card-title">Intro to the Helio team</div>
+            <div class="s-card-context">Alex promised to connect you with the Helio founding team.</div>
+            <div class="s-card-quote">"will introduce you to the Helio team this week" May 22, 11:05 AM</div>
+            <div class="s-card-meta"><span class="s-dir they-owe">They owe</span><span class="s-age overdue">5d</span></div>
+            <div class="s-actions"><span>Reply</span><span>Done</span><span>Dismiss</span></div>
           </div>
-          <div class="screen-label" style="margin-top:8px;">Sam Rivera</div>
-          <div class="screen-row" style="padding-top:0;">
-            <div class="screen-row-top"><div class="screen-row-name">Review the Q3 budget draft</div><div class="screen-row-age">1d</div></div>
-            <div class="screen-row-dir" style="font-size:10px;color:var(--ink-3);">you owe Sam</div>
-            <div class="screen-mini-actions"><span>Resolve</span><span>Dismiss</span></div>
+          <div class="s-group-header">
+            <div class="s-group-left"><div class="s-avatar">SR</div><span class="s-group-name">Sam Rivera</span><span class="s-group-meta">2 open</span></div>
+            <div><span class="s-group-badge you-owe">1 you owe</span> <span class="s-group-badge they-owe">1 they owe</span></div>
+          </div>
+          <div class="s-card" style="border-radius:6px 6px 0 0;">
+            <div class="s-card-title">Review the Q3 budget draft</div>
+            <div class="s-card-quote">"I'll review the Q3 budget and send comments" May 27, 9:30 AM</div>
+            <div class="s-card-meta"><span class="s-dir you-owe">You owe</span><span class="s-age">1d</span></div>
+            <div class="s-actions"><span>Reply</span><span>Done</span><span>Dismiss</span></div>
+          </div>
+          <div class="s-card" style="border-radius:0 0 6px 6px;">
+            <div class="s-card-title">Share the vendor shortlist</div>
+            <div class="s-card-quote">"I'll share the vendor shortlist by Monday" May 21, 4:15 PM</div>
+            <div class="s-card-meta"><span class="s-dir they-owe">They owe</span><span class="s-age stale">6d</span></div>
+            <div class="s-actions"><span>Reply</span><span>Done</span><span>Dismiss</span></div>
           </div>
         </div>
       </div>
