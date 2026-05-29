@@ -171,6 +171,16 @@ For each new commitment, return:
 - due_hint: any mentioned deadline or timeframe, converted to a concrete date/time if possible (e.g. "tomorrow" → "May 30", "by EOD" → "today evening"). Empty string if none
 - person_name: the name of the other person involved
 
+IMPORTANT — only extract REAL commitments. A commitment is someone explicitly stating they WILL do something, or agreeing to a request. Do NOT extract:
+- Questions ("can you...?", "would you mind...?") — these are requests, not commitments, unless answered with agreement
+- Offers or suggestions ("I could...", "maybe we should...") — only extract if they clearly commit to action
+- Greetings, small talk, reactions, or emotional messages
+- Status updates or announcements that don't involve a promise to act
+- Rhetorical statements or vague intentions ("we should catch up sometime")
+- Messages in any language follow the same rules — translate mentally but apply the same strict standard
+
+When in doubt, do NOT extract. False positives are worse than missed commitments.
+
 2. AUTO-RESOLVE — this is critical. Carefully check if ANY of the existing open commitments below have been fulfilled, completed, or made irrelevant by the new messages. Be aggressive about detecting resolution. Mark a commitment as resolved if:
 - The promised action was done (sent a doc, made a call, shared info, etc.)
 - The conversation shows the matter was handled or discussed ("done", "sorted", "taken care of")
