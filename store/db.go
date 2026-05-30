@@ -98,11 +98,28 @@ func (db *DB) migrate() error {
 	if err != nil {
 		return err
 	}
-	db.conn.Exec("ALTER TABLE commitments ADD COLUMN favorited INTEGER NOT NULL DEFAULT 0")
-	db.conn.Exec("ALTER TABLE commitments ADD COLUMN resolved_by TEXT NOT NULL DEFAULT 'user'")
-	db.conn.Exec("ALTER TABLE commitments ADD COLUMN last_nudged_at INTEGER")
-	db.conn.Exec("ALTER TABLE commitments ADD COLUMN reminder_at INTEGER")
+
+	version := db.schemaVersion()
+
+	if version < 1 {
+		db.conn.Exec("ALTER TABLE commitments ADD COLUMN favorited INTEGER NOT NULL DEFAULT 0")
+		db.conn.Exec("ALTER TABLE commitments ADD COLUMN resolved_by TEXT NOT NULL DEFAULT 'user'")
+		db.conn.Exec("ALTER TABLE commitments ADD COLUMN last_nudged_at INTEGER")
+		db.conn.Exec("ALTER TABLE commitments ADD COLUMN reminder_at INTEGER")
+	}
+
+	db.setSchemaVersion(1)
 	return nil
+}
+
+func (db *DB) schemaVersion() int {
+	var v int
+	db.conn.QueryRow("SELECT CAST(value AS INTEGER) FROM settings WHERE key = 'schema_version'").Scan(&v)
+	return v
+}
+
+func (db *DB) setSchemaVersion(v int) {
+	db.SetSetting("schema_version", fmt.Sprintf("%d", v))
 }
 
 // Settings
@@ -128,6 +145,9 @@ func (db *DB) HasPasscode() bool {
 }
 
 func (db *DB) SetPasscode(passcode string) error {
+	// Decrypt existing data with current key before switching
+	existingAPIKey := db.GetAPIKey()
+
 	hash, err := bcrypt.GenerateFromPassword([]byte(passcode), bcrypt.DefaultCost)
 	if err != nil {
 		return err
@@ -144,6 +164,13 @@ func (db *DB) SetPasscode(passcode string) error {
 	}
 	db.deriveKey(passcode)
 	db.conn.Exec("DELETE FROM settings WHERE key = 'machine_key'")
+
+	// Re-encrypt existing data with the new passcode-derived key
+	if existingAPIKey != "" {
+		if err := db.SetAPIKey(existingAPIKey); err != nil {
+			return fmt.Errorf("re-encrypt api key: %w", err)
+		}
+	}
 	return nil
 }
 
