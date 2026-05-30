@@ -506,7 +506,7 @@
             max-width: 852px;
             margin: 0 auto;
             width: 100%;
-            padding: 20px 24px 0;
+            padding: 20px 0 0;
             font-size: 20px;
             font-weight: 600;
             color: var(--ink);
@@ -1837,13 +1837,6 @@
             <button class="tab" onclick="switchTab('resolved', this)">Resolved <span class="tab-count" id="count-resolved">0</span></button>
         </div>
 
-        <div class="summary-bar">
-            <div class="summary-stat"><span class="stat-value" id="stat-open">0</span><span class="stat-label">open</span></div>
-            <div class="summary-divider"></div>
-            <div class="summary-stat"><span class="stat-value" id="stat-you-owe">0</span><span class="stat-label">you owe</span></div>
-            <div class="summary-divider"></div>
-            <div class="summary-stat"><span class="stat-value" id="stat-they-owe">0</span><span class="stat-label">they owe</span></div>
-        </div>
 
         <div class="content">
             <div class="content-inner" id="commitments-container"></div>
@@ -2257,9 +2250,6 @@
         }
 
         function updateStats(stats) {
-            document.getElementById('stat-open').textContent = stats.open;
-            document.getElementById('stat-you-owe').textContent = stats.you_owe;
-            document.getElementById('stat-they-owe').textContent = stats.they_owe;
             document.getElementById('count-all').textContent = stats.open;
             document.getElementById('count-you-owe').textContent = stats.you_owe;
             document.getElementById('count-they-owe').textContent = stats.they_owe;
