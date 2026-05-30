@@ -6,8 +6,11 @@ import (
 	"log"
 	"net"
 	"os"
+	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"runtime"
+	"strings"
 	"syscall"
 
 	"github.com/msfoundry/commit/extraction"
@@ -54,15 +57,47 @@ func main() {
 		go wa.Connect(ctx)
 	}
 
+	ensureHostsEntry()
+
 	addr := fmt.Sprintf("0.0.0.0:%d", defaultPort)
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
 		log.Fatalf("failed to listen on %s: %v", addr, err)
 	}
-	log.Printf("Commit running at http://%s", addr)
+	log.Printf("Commit running at http://commit:%d", defaultPort)
 
 	if err := srv.Serve(ctx, ln); err != nil {
 		log.Fatalf("server error: %v", err)
+	}
+}
+
+func ensureHostsEntry() {
+	if runtime.GOOS != "darwin" && runtime.GOOS != "linux" {
+		return
+	}
+	data, err := os.ReadFile("/etc/hosts")
+	if err != nil {
+		return
+	}
+	for _, line := range strings.Split(string(data), "\n") {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "#") {
+			continue
+		}
+		fields := strings.Fields(line)
+		for _, f := range fields[1:] {
+			if f == "commit" {
+				return
+			}
+		}
+	}
+	log.Println("Adding 'commit' to /etc/hosts (one-time setup, requires admin password)...")
+	script := `do shell script "echo '127.0.0.1 commit' >> /etc/hosts" with administrator privileges`
+	cmd := exec.Command("osascript", "-e", script)
+	if err := cmd.Run(); err != nil {
+		log.Printf("Could not add hosts entry: %v (you can still use localhost:%d)", err, defaultPort)
+	} else {
+		log.Println("Added 'commit' to /etc/hosts — use http://commit:" + fmt.Sprint(defaultPort))
 	}
 }
 

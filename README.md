@@ -39,7 +39,7 @@ go build -o commit .
 
 ## Setup
 
-Open [http://localhost:9384](http://localhost:9384) in your browser. The setup wizard will walk you through:
+Open [http://commit:9384](http://commit:9384) in your browser (or `localhost:9384`). The setup wizard will walk you through:
 
 1. **Set a passcode** — protects the web interface and encrypts your API key
 2. **Enter your Claude API key** — stored locally, encrypted with AES-GCM
