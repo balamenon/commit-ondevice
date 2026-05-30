@@ -78,6 +78,7 @@ func (s *Server) registerRoutes() {
 	s.mux.HandleFunc("/api/followups/nudge", s.requireAuth(s.handleNudge))
 	s.mux.HandleFunc("/api/commitments/remind", s.requireAuth(s.handleSetReminder))
 	s.mux.HandleFunc("/api/local-ip", s.requireAuth(s.handleLocalIP))
+	s.mux.HandleFunc("/api/user-name", s.requireAuth(s.handleUserName))
 	s.mux.HandleFunc("/api/logout", s.requireAuth(s.handleLogout))
 }
 
@@ -445,6 +446,30 @@ func (s *Server) handleLocalIP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	writeJSON(w, map[string]string{"ip": ip})
+}
+
+func (s *Server) handleUserName(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "GET" {
+		name := s.db.GetSetting("user_name")
+		writeJSON(w, map[string]string{"name": name})
+		return
+	}
+	if r.Method == "POST" {
+		var body struct {
+			Name string `json:"name"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, "bad request", 400)
+			return
+		}
+		if err := s.db.SetSetting("user_name", body.Name); err != nil {
+			http.Error(w, "failed", 500)
+			return
+		}
+		writeJSON(w, map[string]any{"ok": true})
+		return
+	}
+	http.Error(w, "method not allowed", 405)
 }
 
 func (s *Server) handleReply(w http.ResponseWriter, r *http.Request) {

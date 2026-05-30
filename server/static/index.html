@@ -440,6 +440,24 @@
             height: 14px;
         }
 
+        .topbar-clock {
+            font-size: 12px;
+            color: var(--ink-tertiary);
+            font-variant-numeric: tabular-nums;
+            letter-spacing: 0.01em;
+            white-space: nowrap;
+        }
+
+        .greeting {
+            max-width: 852px;
+            margin: 0 auto;
+            width: 100%;
+            padding: 20px 0 0;
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--ink-primary);
+        }
+
         /* Search */
         .search-bar-container {
             padding: 16px 0 0;
@@ -1704,6 +1722,7 @@
                 </div>
             </div>
             <div class="topbar-right">
+                <span class="topbar-clock" id="topbar-clock"></span>
                 <button class="topbar-btn" onclick="toggleTheme()">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
                 </button>
@@ -1713,6 +1732,8 @@
                 </button>
             </div>
         </div>
+
+        <div class="greeting" id="greeting"></div>
 
         <div class="search-bar-container">
             <div class="search-bar">
@@ -1743,7 +1764,7 @@
             <div class="content-inner" id="commitments-container"></div>
         </div>
 
-        <div class="footer">by MS Foundry</div>
+        <div class="footer">v1.1 by <a href="https://x.com/miten" target="_blank" style="color: inherit; text-decoration: none;">MS Foundry</a></div>
     </div>
 
     <!-- ══════ Settings Overlay ══════ -->
@@ -1752,6 +1773,16 @@
             <div class="settings-header">
                 <div class="settings-title">Settings</div>
                 <button class="settings-close" onclick="closeSettings()">&times;</button>
+            </div>
+            <div class="settings-group">
+                <div class="settings-group-title">Profile</div>
+                <div class="settings-row">
+                    <span class="settings-row-label">Your name</span>
+                    <div style="display: flex; gap: 6px; align-items: center;">
+                        <input type="text" id="settings-name" placeholder="Enter your name" style="font-size: 13px; padding: 5px 10px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-secondary); color: var(--ink-primary); font-family: inherit; width: 160px;" />
+                        <button class="topbar-btn" onclick="saveUserName()" style="padding: 5px 10px;">Save</button>
+                    </div>
+                </div>
             </div>
             <div class="settings-group">
                 <div class="settings-group-title">Scanning</div>
@@ -1878,6 +1909,7 @@
             const status = await api('/api/status');
             if (status.state === 'ready') {
                 goToScreen('screen-main');
+                loadUserName();
                 loadDashboard();
             } else if (status.state === 'needs_login' || status.state === 'connecting') {
                 goToScreen('screen-qr');
@@ -2708,9 +2740,55 @@
             localStorage.setItem('commit-theme', next);
         }
 
+        // ── Clock ──
+        function updateClock() {
+            const el = document.getElementById('topbar-clock');
+            if (!el) return;
+            const now = new Date();
+            const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const pad = n => String(n).padStart(2, '0');
+            el.textContent = `${days[now.getDay()]} ${now.getDate()} ${months[now.getMonth()]} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // ── Greeting ──
+        let userName = '';
+        function updateGreeting() {
+            const el = document.getElementById('greeting');
+            if (!el) return;
+            const hour = new Date().getHours();
+            let timeOfDay = 'Good evening';
+            if (hour < 12) timeOfDay = 'Good morning';
+            else if (hour < 17) timeOfDay = 'Good afternoon';
+            el.textContent = userName ? `${timeOfDay}, ${userName}` : timeOfDay;
+        }
+        function loadUserName() {
+            fetch('/api/user-name').then(r => r.json()).then(d => {
+                userName = d.name || '';
+                updateGreeting();
+                const input = document.getElementById('settings-name');
+                if (input) input.value = userName;
+            }).catch(() => {});
+        }
+        async function saveUserName() {
+            const input = document.getElementById('settings-name');
+            const name = input ? input.value.trim() : '';
+            await api('/api/user-name', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({name})
+            });
+            userName = name;
+            updateGreeting();
+        }
+
         // ── Settings ──
         function openSettings() {
             document.getElementById('settings-overlay').classList.add('active');
+            const nameInput = document.getElementById('settings-name');
+            if (nameInput) nameInput.value = userName;
             const el = document.getElementById('local-ip-code');
             if (el) {
                 const host = window.location.hostname;
