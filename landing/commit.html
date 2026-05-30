@@ -312,7 +312,16 @@
 
 <hr>
 
-<div class="screens">
+<p id="access-prompt">Commit is ready for you. <span class="link" onclick="document.getElementById('access-prompt').style.display='none';document.getElementById('access').style.display='block';">request access</span> · <a href="#screens" class="link">see it in action</a></p>
+
+<div id="access" class="reveal">
+<p>email <span class="email">coach.alfred.ai@gmail.com</span> with subject line "Commit app" and describe what you intend to use this for. I'll send you the installable in around 24 hours.</p>
+</div>
+
+<p class="quiet" style="margin-top: 36px;">by <a href="https://x.com/miten">MS Foundry</a> &middot; updated 30 May 2025</p>
+
+<div class="screens" id="screens">
+<hr>
 <p class="screens-label">see it in action</p>
 <div class="stage">
   <div class="phone">
@@ -327,16 +336,6 @@
 </div>
 <p class="screen-caption">mobile and desktop — same data, same dashboard</p>
 </div>
-
-<hr>
-
-<p id="access-prompt">Commit is ready for you. <span class="link" onclick="document.getElementById('access-prompt').style.display='none';document.getElementById('access').style.display='block';">request access</span></p>
-
-<div id="access" class="reveal">
-<p>email <span class="email">coach.alfred.ai@gmail.com</span> with subject line "Commit app" and describe what you intend to use this for. I'll send you the installable in around 24 hours.</p>
-</div>
-
-<p class="quiet" style="margin-top: 36px;">by <a href="https://x.com/miten">MS Foundry</a> &middot; updated 30 May 2025</p>
 
 <script>
 function updateClock() {
