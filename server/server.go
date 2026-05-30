@@ -77,6 +77,7 @@ func (s *Server) registerRoutes() {
 	s.mux.HandleFunc("/api/followups", s.requireAuth(s.handleFollowUps))
 	s.mux.HandleFunc("/api/followups/nudge", s.requireAuth(s.handleNudge))
 	s.mux.HandleFunc("/api/commitments/remind", s.requireAuth(s.handleSetReminder))
+	s.mux.HandleFunc("/api/local-ip", s.requireAuth(s.handleLocalIP))
 	s.mux.HandleFunc("/api/logout", s.requireAuth(s.handleLogout))
 }
 
@@ -420,6 +421,30 @@ func (s *Server) handleSetReminder(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	writeJSON(w, map[string]any{"ok": true})
+}
+
+func (s *Server) handleLocalIP(w http.ResponseWriter, r *http.Request) {
+	ip := "127.0.0.1"
+	ifaces, err := net.Interfaces()
+	if err == nil {
+		for _, iface := range ifaces {
+			if iface.Flags&net.FlagUp == 0 || iface.Flags&net.FlagLoopback != 0 {
+				continue
+			}
+			addrs, err := iface.Addrs()
+			if err != nil {
+				continue
+			}
+			for _, addr := range addrs {
+				if ipNet, ok := addr.(*net.IPNet); ok && ipNet.IP.To4() != nil {
+					ip = ipNet.IP.String()
+					writeJSON(w, map[string]string{"ip": ip})
+					return
+				}
+			}
+		}
+	}
+	writeJSON(w, map[string]string{"ip": ip})
 }
 
 func (s *Server) handleReply(w http.ResponseWriter, r *http.Request) {

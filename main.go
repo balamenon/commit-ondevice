@@ -85,6 +85,9 @@ func ensureHostsEntry() {
 			continue
 		}
 		fields := strings.Fields(line)
+		if len(fields) < 2 {
+			continue
+		}
 		for _, f := range fields[1:] {
 			if f == "commit" {
 				return

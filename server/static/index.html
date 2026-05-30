@@ -1777,6 +1777,22 @@
                 </div>
             </div>
             <div class="settings-group">
+                <div class="settings-group-title">Mobile Access</div>
+                <div class="settings-row" style="flex-direction: column; align-items: flex-start; gap: 10px;">
+                    <span class="settings-row-label">Access Commit from your phone</span>
+                    <div style="font-size: 12px; color: var(--ink-tertiary); line-height: 1.6;">
+                        <div style="margin-bottom: 8px;"><strong style="color: var(--ink-secondary);">Same WiFi</strong> — open <code style="background: var(--surface-sunken); padding: 1px 6px; border-radius: 3px; font-size: 11px;" id="local-ip-code">loading...</code> on your phone's browser.</div>
+                        <div style="margin-bottom: 6px;"><strong style="color: var(--ink-secondary);">From anywhere</strong> — use Tailscale Funnel (free):</div>
+                        <ol style="margin: 0; padding-left: 18px; line-height: 2;">
+                            <li>Install <a href="https://tailscale.com/download" target="_blank" style="color: var(--accent);">Tailscale</a> on this Mac and sign in</li>
+                            <li>Open Terminal and run:<br><code style="background: var(--surface-sunken); padding: 2px 8px; border-radius: 3px; font-size: 11px; display: inline-block; margin-top: 2px;">tailscale funnel 9384</code></li>
+                            <li>Tailscale prints your URL — open it on any device</li>
+                        </ol>
+                        <div style="margin-top: 8px; color: var(--ink-faint); font-size: 11px;">Your passcode protects access. The URL is unique to your machine.</div>
+                    </div>
+                </div>
+            </div>
+            <div class="settings-group">
                 <div class="settings-group-title">Account</div>
                 <div class="settings-row">
                     <span class="settings-row-label">Disconnect WhatsApp</span>
@@ -2693,7 +2709,20 @@
         }
 
         // ── Settings ──
-        function openSettings() { document.getElementById('settings-overlay').classList.add('active'); }
+        function openSettings() {
+            document.getElementById('settings-overlay').classList.add('active');
+            const el = document.getElementById('local-ip-code');
+            if (el) {
+                const host = window.location.hostname;
+                if (host === 'localhost' || host === '127.0.0.1' || host === 'commit') {
+                    fetch('/api/local-ip').then(r => r.json()).then(d => {
+                        el.textContent = 'http://' + d.ip + ':9384';
+                    }).catch(() => { el.textContent = 'http://<your-mac-ip>:9384'; });
+                } else {
+                    el.textContent = window.location.origin;
+                }
+            }
+        }
         function closeSettings() { document.getElementById('settings-overlay').classList.remove('active'); }
 
         async function logout() {
