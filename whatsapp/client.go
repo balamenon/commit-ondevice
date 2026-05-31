@@ -39,6 +39,9 @@ type Client struct {
 	connected    bool
 	appCtx       context.Context
 	loopsStarted bool
+
+	pendingMu      sync.Mutex
+	pendingChoices []string // person names awaiting disambiguation
 }
 
 func New(db *store.DB, dataDir string, extractor Extractor, appCtx context.Context) *Client {

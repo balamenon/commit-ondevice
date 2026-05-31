@@ -39,6 +39,8 @@ func (c *Client) handleBotCommand(ctx context.Context, evt *events.Message) bool
 		response = c.cmdSearch(query)
 	case cmd == "help" || cmd == "h":
 		response = c.cmdHelp()
+	case len(cmd) == 1 && cmd[0] >= 'a' && cmd[0] <= 'z':
+		response = c.cmdDisambiguate(cmd)
 	default:
 		return false
 	}
@@ -93,28 +95,37 @@ func (c *Client) cmdOwe(person string) string {
 	}
 
 	person = strings.ToLower(person)
-	var matches []*commitmentRef
-	var displayName string
+
+	// Group matches by distinct person
+	type personMatch struct {
+		displayName string
+		items       []*commitmentRef
+	}
+	seen := map[string]*personMatch{}
+	var order []string
+
 	for _, cm := range openCommitments {
-		if strings.Contains(strings.ToLower(cm.PersonName), person) ||
-			strings.Contains(strings.ToLower(cm.ChatName), person) {
-			matches = append(matches, &commitmentRef{cm.Title, cm.Direction, cm.PersonName})
-			if displayName == "" {
-				if strings.Contains(strings.ToLower(cm.ChatName), person) {
-					displayName = cm.ChatName
-				} else {
-					displayName = cm.PersonName
-				}
+		if fuzzyMatch(person, cm.PersonName) || fuzzyMatch(person, cm.ChatName) {
+			key := strings.ToLower(cm.PersonName)
+			if key == "" {
+				key = strings.ToLower(cm.ChatName)
 			}
+			if _, ok := seen[key]; !ok {
+				seen[key] = &personMatch{displayName: cm.PersonName}
+				if seen[key].displayName == "" {
+					seen[key].displayName = cm.ChatName
+				}
+				order = append(order, key)
+			}
+			seen[key].items = append(seen[key].items, &commitmentRef{cm.Title, cm.Direction, cm.PersonName})
 		}
 	}
 
-	if len(matches) == 0 {
+	if len(seen) == 0 {
 		resolvedCommitments, _ := c.db.GetCommitments("resolved")
 		resolvedCount := 0
 		for _, cm := range resolvedCommitments {
-			if strings.Contains(strings.ToLower(cm.PersonName), person) ||
-				strings.Contains(strings.ToLower(cm.ChatName), person) {
+			if fuzzyMatch(person, cm.PersonName) || fuzzyMatch(person, cm.ChatName) {
 				resolvedCount++
 			}
 		}
@@ -124,9 +135,71 @@ func (c *Client) cmdOwe(person string) string {
 		return fmt.Sprintf("No commitments found with \"%s\".", person)
 	}
 
+	// Single person match — show directly
+	if len(seen) == 1 {
+		pm := seen[order[0]]
+		return formatPersonCommitments(pm.displayName, pm.items)
+	}
+
+	// Multiple people match — ask to disambiguate
+	c.pendingMu.Lock()
+	c.pendingChoices = make([]string, len(order))
+	for i, key := range order {
+		c.pendingChoices[i] = seen[key].displayName
+	}
+	c.pendingMu.Unlock()
+
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("*Commitments with %s:*\n\n", displayName))
-	for _, m := range matches {
+	sb.WriteString(fmt.Sprintf("I found %d matches for \"%s\". Did you mean:\n\n", len(order), person))
+	for i, key := range order {
+		pm := seen[key]
+		letter := string(rune('a' + i))
+		sb.WriteString(fmt.Sprintf("(%s) %s (%d commitments)\n", letter, pm.displayName, len(pm.items)))
+	}
+	sb.WriteString("\nReply with a letter to choose.")
+	return sb.String()
+}
+
+func (c *Client) cmdDisambiguate(letter string) string {
+	c.pendingMu.Lock()
+	choices := c.pendingChoices
+	c.pendingChoices = nil
+	c.pendingMu.Unlock()
+
+	if len(choices) == 0 {
+		return ""
+	}
+
+	idx := int(letter[0] - 'a')
+	if idx < 0 || idx >= len(choices) {
+		return fmt.Sprintf("Invalid choice. Please pick a-" + string(rune('a'+len(choices)-1)) + ".")
+	}
+
+	person := choices[idx]
+	openCommitments, err := c.db.GetCommitments("open")
+	if err != nil {
+		return fmt.Sprintf("Error: %v", err)
+	}
+
+	personLower := strings.ToLower(person)
+	var items []*commitmentRef
+	for _, cm := range openCommitments {
+		if strings.ToLower(cm.PersonName) == personLower || strings.ToLower(cm.ChatName) == personLower {
+			items = append(items, &commitmentRef{cm.Title, cm.Direction, cm.PersonName})
+		}
+	}
+
+	if len(items) == 0 {
+		return fmt.Sprintf("No open commitments with %s.", person)
+	}
+
+	return formatPersonCommitments(person, items)
+}
+
+func formatPersonCommitments(name string, items []*commitmentRef) string {
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("*Commitments with %s:*\n\n", name))
+	for _, m := range items {
 		arrow := "→ You owe:"
 		if m.Direction == "they_owe" {
 			arrow = "← They owe:"
@@ -190,7 +263,36 @@ help — show this message`
 }
 
 type commitmentRef struct {
-	Title     string
-	Direction string
+	Title      string
+	Direction  string
 	PersonName string
+}
+
+// fuzzyMatch checks if all words in the query appear as prefixes of words in the target.
+// "rah" matches "Rahul Sharma", "rah sh" matches "Rahul Sharma", "sharma" matches "Rahul Sharma".
+func fuzzyMatch(query, target string) bool {
+	if target == "" {
+		return false
+	}
+	target = strings.ToLower(target)
+	// First try simple substring (covers exact and partial matches)
+	if strings.Contains(target, query) {
+		return true
+	}
+	// Then try all-words-match: each query word must prefix-match some target word
+	queryWords := strings.Fields(query)
+	targetWords := strings.Fields(target)
+	for _, qw := range queryWords {
+		found := false
+		for _, tw := range targetWords {
+			if strings.HasPrefix(tw, qw) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+	return true
 }
