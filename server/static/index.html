@@ -3260,8 +3260,12 @@
             document.getElementById('update-banner').style.display = 'none';
             sessionStorage.setItem('update-dismissed', '1');
         }
-        checkForUpdate();
-        setInterval(checkForUpdate, 3600000); // check hourly
+        // Check on load if 3+ days since last check
+        const lastCheck = localStorage.getItem('update-last-check') || 0;
+        if (Date.now() - lastCheck > 3 * 24 * 3600000) {
+            checkForUpdate();
+            localStorage.setItem('update-last-check', Date.now());
+        }
 
         // ── Multi-tab sync ──
         const bc = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('commit-sync') : null;
