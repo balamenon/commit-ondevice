@@ -1073,13 +1073,24 @@
             opacity: 1;
         }
 
-        .mute-btn {
-            opacity: 0.4;
+        .mute-btn.group-fav-btn {
+            opacity: 0.35;
+            color: var(--ink-faint);
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 2px;
         }
-        .mute-btn:hover {
-            opacity: 0.8;
+        .mute-btn.group-fav-btn svg {
+            width: 16px;
+            height: 16px;
+            vertical-align: middle;
         }
-        .mute-btn.active {
+        .mute-btn.group-fav-btn:hover {
+            opacity: 0.7;
+            color: var(--ink-secondary);
+        }
+        .mute-btn.group-fav-btn.active {
             opacity: 1;
             color: var(--danger);
         }
@@ -2689,7 +2700,7 @@
                             <div class="group-avatar"${avatarStyle}>${getInitials(group.name)}</div>
                             <span class="group-name">${esc(group.name)}</span>
                             <button class="favorite-btn group-fav-btn ${chatStarClass}" onclick="event.stopPropagation();toggleChatFavorite('${escAttr(group.chat_jid)}','${escAttr(group.name)}',${group.is_group})"><svg viewBox="0 0 24 24" fill="${chatStarFill}" stroke="currentColor" stroke-width="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></button>
-                            <button class="mute-btn group-fav-btn ${muteClass}" onclick="event.stopPropagation();toggleChatMute('${escAttr(group.chat_jid)}','${escAttr(group.name)}')" title="${chatMuted ? 'Resume' : 'Pause'}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="8" y1="5" x2="8" y2="19"/><line x1="16" y1="5" x2="16" y2="19"/></svg></button>
+                            <button class="mute-btn group-fav-btn ${muteClass}" onclick="event.stopPropagation();toggleChatMute('${escAttr(group.chat_jid)}','${escAttr(group.name)}')" title="${chatMuted ? 'Resume' : 'Pause'}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="9" y1="7" x2="9" y2="17"/><line x1="15" y1="7" x2="15" y2="17"/></svg></button>
                             <span class="group-meta">${metaText}</span>
                         </div>
                         <div class="group-header-right">
