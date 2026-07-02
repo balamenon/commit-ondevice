@@ -679,6 +679,292 @@
             background: var(--line);
         }
 
+        /* Needs attention section */
+        .attention-section {
+            margin-bottom: 8px;
+        }
+
+        .attention-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--ink-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 16px 0 8px;
+        }
+
+        .attention-bucket { margin-bottom: 12px; }
+        .bucket-header {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 4px;
+            padding: 0 2px;
+        }
+        .bucket-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+        .bucket-icon.drop { background: #f4e4e6; color: var(--danger); }
+        .bucket-icon.quiet { background: #fef3cd; color: var(--warning); }
+        .bucket-icon.dark { background: var(--surface-sunken); color: var(--ink-faint); }
+        [data-theme="dark"] .bucket-icon.drop { background: #2d1519; }
+        [data-theme="dark"] .bucket-icon.quiet { background: #332b1a; }
+        .bucket-title {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--ink-secondary);
+        }
+
+        .attention-card {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            padding: 12px 16px;
+            position: relative;
+            cursor: default;
+        }
+
+        .attention-card:first-of-type { border-radius: var(--radius-md) var(--radius-md) 0 0; }
+        .attention-card:last-of-type { border-radius: 0 0 var(--radius-md) var(--radius-md); margin-bottom: 0; }
+        .attention-card:only-of-type { border-radius: var(--radius-md); }
+        .attention-card + .attention-card { border-top: none; }
+
+        .attention-card:hover .attn-actions { opacity: 1; }
+
+        .attn-title {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--ink);
+            margin-bottom: 2px;
+        }
+
+        .attn-meta {
+            font-size: 12px;
+            color: var(--ink-secondary);
+            margin-bottom: 2px;
+        }
+
+        .attn-reason {
+            font-size: 11px;
+            font-style: italic;
+            white-space: nowrap;
+        }
+        .attn-reason.urgent { color: var(--danger); }
+        .attn-reason.waiting { color: var(--warning); }
+        .attn-reason.fading { color: var(--ink-faint); }
+
+        .action-btn.primary-action {
+            background: var(--ink);
+            color: var(--surface);
+            border-color: var(--ink);
+        }
+        .action-btn.primary-action:hover {
+            opacity: 0.85;
+        }
+
+        .dir-badge {
+            display: inline-block;
+            font-size: 10px;
+            padding: 1px 6px;
+            border-radius: 4px;
+            font-weight: 500;
+            margin-left: 6px;
+        }
+
+        .dir-badge.you-owe {
+            background: #f4e4e6;
+            color: var(--danger);
+        }
+
+        .dir-badge.they-owe {
+            background: var(--growth-light);
+            color: var(--growth);
+        }
+
+        [data-theme="dark"] .dir-badge.you-owe { background: #2d1519; }
+        [data-theme="dark"] .dir-badge.they-owe { background: var(--growth-light); }
+
+        .attn-actions {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            gap: 2px;
+            opacity: 0;
+            transition: opacity 0.15s;
+            background: var(--surface);
+            border-radius: 6px;
+            padding: 2px;
+        }
+
+        .attn-action-btn {
+            width: 28px;
+            height: 28px;
+            border: none;
+            background: none;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--ink-tertiary);
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .attn-action-btn:hover {
+            background: var(--surface-sunken);
+            color: var(--ink);
+        }
+
+        .people-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--ink-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 16px 0 4px;
+        }
+
+        /* Auto-resolved collapsed section */
+        .auto-resolved-section {
+            padding: 12px 0;
+        }
+
+        .auto-resolved-toggle {
+            font-size: 12px;
+            color: var(--ink-tertiary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            background: none;
+            border: none;
+            font-family: inherit;
+            padding: 0;
+        }
+
+        .auto-resolved-toggle svg {
+            width: 14px;
+            height: 14px;
+            transition: transform 0.15s;
+        }
+
+        .auto-resolved-toggle.open svg { transform: rotate(180deg); }
+
+        .auto-resolved-item {
+            padding: 6px 0;
+            font-size: 13px;
+            color: var(--ink-secondary);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .auto-label {
+            font-size: 10px;
+            color: var(--growth);
+            background: var(--growth-light);
+            padding: 1px 6px;
+            border-radius: 3px;
+            font-weight: 500;
+        }
+
+        /* Relationship hint */
+        .relationship-hint {
+            font-size: 11px;
+            color: var(--ink-faint);
+            padding: 2px 0 6px 38px;
+            font-style: italic;
+        }
+
+        /* Stats page */
+        .stats-page { padding: 20px 0; }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: var(--radius-md);
+            padding: 14px 16px;
+        }
+
+        .stat-card-label {
+            font-size: 11px;
+            color: var(--ink-tertiary);
+            margin-bottom: 4px;
+        }
+
+        .stat-card-value {
+            font-size: 22px;
+            font-weight: 600;
+            color: var(--ink);
+        }
+
+        .stat-card-sub {
+            font-size: 11px;
+            color: var(--ink-faint);
+            margin-top: 2px;
+        }
+
+        .stats-section-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--ink);
+            margin: 20px 0 10px;
+        }
+
+        .person-stat-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .person-stat-row:last-child { border-bottom: none; }
+
+        .person-stat-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .person-stat-name {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--ink);
+        }
+
+        .person-stat-right {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .person-stat-num {
+            font-size: 13px;
+            color: var(--ink-secondary);
+            text-align: right;
+            min-width: 40px;
+        }
+
+        .person-stat-num strong {
+            color: var(--ink);
+        }
+
         /* Content area */
         .content {
             flex: 1;
@@ -1090,6 +1376,32 @@
             opacity: 0.7;
             color: var(--ink-secondary);
         }
+        .rename-btn {
+            opacity: 0;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 2px;
+            color: var(--ink-faint);
+            margin-left: -4px;
+        }
+        .rename-btn svg { width: 13px; height: 13px; vertical-align: middle; }
+        .group-header:hover .rename-btn { opacity: 0.5; }
+        .rename-btn:hover { opacity: 1 !important; color: var(--ink-secondary); }
+
+        .group-name-input {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--ink);
+            font-family: inherit;
+            background: var(--surface-sunken);
+            border: 1px solid var(--accent);
+            border-radius: 4px;
+            padding: 1px 6px;
+            outline: none;
+            width: 180px;
+        }
+
         .mute-btn.group-fav-btn.active {
             opacity: 1;
             color: var(--danger);
@@ -1184,6 +1496,91 @@
         .nudge-preview textarea {
             width: 100%;
         }
+
+        .nudge-tier-tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 8px;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        .nudge-tier-tab {
+            flex: 1;
+            padding: 6px 8px;
+            font-size: 11px;
+            font-weight: 500;
+            text-align: center;
+            cursor: pointer;
+            background: var(--surface-sunken);
+            color: var(--ink-secondary);
+            border: none;
+            border-right: 1px solid var(--line);
+            transition: background 0.15s, color 0.15s;
+        }
+        .nudge-tier-tab:last-child { border-right: none; }
+        .nudge-tier-tab.active {
+            background: var(--surface);
+            color: var(--ink);
+            font-weight: 600;
+        }
+        .nudge-tier-tab:hover:not(.active) {
+            background: var(--surface);
+        }
+
+        .stale-section {
+            margin-top: 32px;
+            padding-top: 16px;
+            border-top: 1px solid var(--line);
+        }
+        .stale-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+        .stale-title {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--ink-tertiary);
+        }
+        .stale-card {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 14px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            margin-bottom: 6px;
+            background: var(--surface);
+        }
+        .stale-card-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .stale-card-title {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--ink);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .stale-card-meta {
+            font-size: 11px;
+            color: var(--ink-tertiary);
+            margin-top: 2px;
+        }
+        .stale-card-actions {
+            display: flex;
+            gap: 6px;
+            margin-left: 12px;
+            opacity: 0;
+            transition: opacity 0.15s;
+        }
+        .stale-card:hover .stale-card-actions { opacity: 1; }
 
         .auto-resolved-badge {
             font-size: 10px;
@@ -1892,6 +2289,7 @@
             <button class="tab" onclick="switchTab('you_owe', this)">I owe <span class="tab-count" id="count-you-owe">0</span></button>
             <button class="tab" onclick="switchTab('they_owe', this)">They owe <span class="tab-count" id="count-they-owe">0</span></button>
             <button class="tab" onclick="switchTab('resolved', this)">Resolved <span class="tab-count" id="count-resolved">0</span></button>
+            <button class="tab" onclick="switchTab('stats', this)">Stats</button>
         </div>
 
 
@@ -1899,7 +2297,7 @@
             <div class="content-inner" id="commitments-container"></div>
         </div>
 
-        <div class="footer">v1.1.2 by <a href="https://x.com/miten" target="_blank" style="color: inherit; text-decoration: none;">MS Foundry</a></div>
+        <div class="footer">v1.3.0 by <a href="https://x.com/miten" target="_blank" style="color: inherit; text-decoration: none;">MS Foundry</a></div>
     </div>
 
     <!-- ══════ Settings Overlay ══════ -->
@@ -1920,13 +2318,26 @@
                 </div>
             </div>
             <div class="settings-group">
+                <div class="settings-group-title">My style</div>
+                <div class="settings-row" style="flex-direction: column; align-items: flex-start; gap: 8px;">
+                    <span class="settings-row-label">Tell Commit how you work</span>
+                    <div style="font-size: 11px; color: var(--ink-tertiary); line-height: 1.5;">This shapes nudge tone, timing, and how we prioritize things for you.</div>
+                    <textarea id="settings-my-style" placeholder="e.g. I prefer direct communication. I batch weekend replies on Monday morning. For close friends, casual nudges are fine. I tend to forget things after 3 days..." style="width: 100%; min-height: 90px; border: 1px solid var(--line); border-radius: 6px; padding: 10px; font-size: 13px; font-family: inherit; color: var(--ink); background: var(--surface-sunken); resize: vertical; line-height: 1.5;" oninput="updateStyleCounter()"></textarea>
+                    <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
+                        <span id="style-counter" style="font-size: 11px; color: var(--ink-faint);">0 / 500</span>
+                        <button class="topbar-btn" onclick="saveMyStyle()" style="padding: 5px 10px;">Save</button>
+                    </div>
+                    <div id="style-msg" style="font-size: 11px; display: none;"></div>
+                </div>
+            </div>
+            <div class="settings-group">
                 <div class="settings-group-title">Model</div>
                 <div class="settings-row">
                     <span class="settings-row-label">Claude model</span>
                     <select id="settings-model" onchange="updateModel()" style="font-size: 13px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface-sunken); color: var(--ink); font-family: inherit; cursor: pointer;">
-                        <option value="claude-sonnet-4-20250514">Claude Sonnet 4 (latest)</option>
-                        <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet</option>
-                        <option value="claude-3-5-haiku-20241022">Claude 3.5 Haiku (fast/cheap)</option>
+                        <option value="claude-sonnet-4-6-20250620">Claude Sonnet 4.6 (latest)</option>
+                        <option value="claude-sonnet-4-20250514">Claude Sonnet 4</option>
+                        <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 (fast/cheap)</option>
                     </select>
                 </div>
             </div>
@@ -1950,6 +2361,17 @@
                 <div class="settings-row">
                     <span class="settings-row-label">Commitments found</span>
                     <span class="settings-row-value" id="settings-commitments">0</span>
+                </div>
+            </div>
+            <div class="settings-group">
+                <div class="settings-group-title">Look back</div>
+                <div class="settings-row" style="flex-direction: column; align-items: flex-start; gap: 8px;">
+                    <span class="settings-row-label">Re-scan messages from a specific date</span>
+                    <div style="display: flex; gap: 6px; align-items: center;">
+                        <input type="date" id="lookback-date" style="font-size: 13px; padding: 5px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface-sunken); color: var(--ink); font-family: inherit;" />
+                        <button class="topbar-btn" id="lookback-btn" onclick="triggerLookback()" style="padding: 5px 10px; white-space: nowrap;">Re-scan</button>
+                    </div>
+                    <div id="lookback-msg" style="font-size: 11px; display: none;"></div>
                 </div>
             </div>
             <div class="settings-group">
@@ -2285,7 +2707,16 @@
                 container.innerHTML = '<div style="text-align:center;padding:60px 0;"><div class="connecting-spinner"></div><div style="font-size:13px;color:var(--ink-tertiary);margin-top:8px;">Loading...</div></div>';
             }
             try {
-                if (currentTab === 'followups') {
+                if (currentTab === 'stats') {
+                    const [detailedStats, stats] = await Promise.all([
+                        api('/api/commitments/detailed-stats'),
+                        api('/api/commitments/stats')
+                    ]);
+                    updateStats(stats);
+                    renderStatsPage(detailedStats);
+                    dashboardLoaded = true;
+                    return;
+                } else if (currentTab === 'followups') {
                     const [followUps, stats] = await Promise.all([
                         api('/api/followups'),
                         api('/api/commitments/stats')
@@ -2302,17 +2733,20 @@
                     updateStats(stats);
                     renderFavoritesView(favView);
                 } else {
-                    const [groups, stats, favView, muted] = await Promise.all([
-                        api('/api/commitments/grouped?status=' + (currentTab === 'resolved' ? 'resolved' : 'open')),
+                    const isOpen = currentTab !== 'resolved';
+                    const [groups, stats, favView, muted, autoResolved, stale] = await Promise.all([
+                        api('/api/commitments/grouped?status=' + (isOpen ? 'open' : 'resolved')),
                         api('/api/commitments/stats'),
                         api('/api/favorites'),
-                        api('/api/chats/muted')
+                        api('/api/chats/muted'),
+                        isOpen ? api('/api/commitments/auto-resolved') : Promise.resolve([]),
+                        isOpen ? api('/api/commitments/stale') : Promise.resolve([])
                     ]);
                     favChats = favView.fav_chats || {};
                     mutedChats = muted || {};
                     allGroups = groups;
                     updateStats(stats);
-                    renderGroups(groups);
+                    renderGroups(groups, autoResolved || [], stale || []);
                 }
                 dashboardLoaded = true;
             } catch (e) {
@@ -2342,21 +2776,206 @@
             loadDashboard();
         }
 
-        function renderGroups(groups) {
+        function bucketAttentionItems(allOpen) {
+            const now = Date.now();
+            const DAY = 1000 * 60 * 60 * 24;
+            const dropping = [], quiet = [], dying = [];
+
+            for (const c of allOpen) {
+                const ageDays = (now - new Date(c.created_at).getTime()) / DAY;
+                const lastInbound = c.last_inbound ? new Date(c.last_inbound).getTime() : 0;
+                const inboundAgo = lastInbound ? (now - lastInbound) / DAY : Infinity;
+                const nudgedAt = c.last_nudged_at ? new Date(c.last_nudged_at).getTime() : 0;
+                const nudgedAgoDays = nudgedAt ? (now - nudgedAt) / DAY : Infinity;
+                const lastActivity = Math.max(lastInbound, nudgedAt, new Date(c.created_at).getTime());
+                const silentDays = Math.floor((now - lastActivity) / DAY);
+
+                if (c.direction === 'you_owe') {
+                    const hint = (c.due_hint || '').toLowerCase();
+                    const hasDueUrgency = hint.includes('today') || hint.includes('tonight') || hint.includes('tomorrow') || hint.includes('asap') || hint.includes('eod');
+                    const recentInbound = inboundAgo < 2;
+
+                    if (hasDueUrgency) {
+                        const reason = hint.includes('today') || hint.includes('tonight') || hint.includes('eod') || hint.includes('asap') ? 'Due today' : 'Due tomorrow';
+                        dropping.push({ ...c, _reason: reason, _reasonClass: 'urgent', _urgency: hasDueUrgency ? 100 : 50 });
+                    } else if (recentInbound) {
+                        const hrs = Math.floor(inboundAgo * 24);
+                        const reason = hrs < 1 ? (c._personName || c.person_name) + ' messaged just now' : (c._personName || c.person_name) + ' messaged ' + (hrs < 24 ? hrs + 'h ago' : Math.floor(inboundAgo) + 'd ago');
+                        dropping.push({ ...c, _reason: reason, _reasonClass: 'urgent', _urgency: 80 - inboundAgo * 10 });
+                    } else if (silentDays >= 14) {
+                        dying.push({ ...c, _reason: 'Silent for ' + silentDays + ' days', _reasonClass: 'fading', _urgency: silentDays });
+                    }
+                } else {
+                    if (nudgedAt && (lastInbound < nudgedAt) && nudgedAgoDays >= 2) {
+                        const d = Math.floor(nudgedAgoDays);
+                        quiet.push({ ...c, _reason: 'Nudged, no response in ' + d + 'd', _reasonClass: 'waiting', _urgency: d });
+                    } else if (silentDays >= 14 && !nudgedAt) {
+                        dying.push({ ...c, _reason: 'Silent for ' + silentDays + ' days', _reasonClass: 'fading', _urgency: silentDays });
+                    }
+                }
+            }
+
+            dropping.sort((a, b) => b._urgency - a._urgency);
+            quiet.sort((a, b) => b._urgency - a._urgency);
+            dying.sort((a, b) => b._urgency - a._urgency);
+
+            return {
+                dropping: dropping.slice(0, 3),
+                quiet: quiet.slice(0, 3),
+                dying: dying.slice(0, 3)
+            };
+        }
+
+        function renderGroups(groups, autoResolved, stale) {
             const container = document.getElementById('commitments-container');
             if (!groups || groups.length === 0) {
+                const isFiltered = currentTab === 'you_owe' || currentTab === 'they_owe';
                 container.innerHTML = `<div class="empty-state">
-                    <div class="empty-state-title">No commitments yet</div>
-                    <div class="empty-state-desc">Commit is listening to your WhatsApp conversations. Commitments will appear here as they're detected.</div>
+                    <div class="empty-state-title">${isFiltered ? 'Nothing here' : 'All clear'}</div>
+                    <div class="empty-state-desc">${isFiltered ? 'No commitments match this filter.' : 'No open commitments. Commit is listening to your WhatsApp conversations.'}</div>
                 </div>`;
                 return;
             }
 
-            const html = renderGroupsHTML(groups);
+            let html = '';
+            const isOpenTab = currentTab === 'all' || currentTab === 'you_owe' || currentTab === 'they_owe';
+
+            if (isOpenTab && !isSearching) {
+                const allOpen = [];
+                for (const g of groups) {
+                    for (const c of g.commitments) {
+                        if (c.status === 'open') {
+                            c._personName = g.name;
+                            allOpen.push(c);
+                        }
+                    }
+                }
+
+                const buckets = bucketAttentionItems(allOpen);
+                const totalAttn = buckets.dropping.length + buckets.quiet.length + buckets.dying.length;
+
+                if (totalAttn > 0) {
+                    html += '<div class="attention-section">';
+                    html += '<div class="attention-label">Needs your attention</div>';
+
+                    function renderAttnCard(c, primaryLabel, primaryAction, secondaryLabel, secondaryAction) {
+                        const dirClass = c.direction === 'you_owe' ? 'you-owe' : 'they-owe';
+                        const dirLabel = c.direction === 'you_owe' ? 'You owe' : 'They owe';
+                        const age = commitmentAge(c.created_at);
+                        const personCtx = c._personName || c.person_name;
+                        return `<div class="commitment-card" data-direction="${dirClass}" id="card-${escAttr(c.id)}">
+                            <div class="commitment-top">
+                                <div class="commitment-body">
+                                    <div class="commitment-title">${esc(c.title)}</div>
+                                    <div class="commitment-context">${esc(personCtx)}</div>
+                                    <div class="commitment-meta">
+                                        <span class="commitment-direction ${dirClass}">${dirLabel}</span>
+                                        <span class="attn-reason ${c._reasonClass}">${esc(c._reason)}</span>
+                                        <span class="commitment-age ${age.cls}">${age.text}</span>
+                                    </div>
+                                </div>
+                                <div class="commitment-actions">
+                                    <button class="action-btn primary-action" onclick="${primaryAction}">${primaryLabel}</button>
+                                    <button class="action-btn" onclick="${secondaryAction}">${secondaryLabel}</button>
+                                </div>
+                            </div>
+                            <div class="reply-area hidden" id="reply-${escAttr(c.id)}"></div>
+                        </div>`;
+                    }
+
+                    if (buckets.dropping.length > 0) {
+                        html += `<div class="attention-bucket">
+                            <div class="bucket-header">
+                                <div class="bucket-icon drop"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+                                <div class="bucket-title">You're about to drop the ball</div>
+                            </div>`;
+                        for (const c of buckets.dropping) {
+                            html += renderAttnCard(c, 'Reply', `showReply('${escAttr(c.id)}','${escAttr(c.chat_jid)}')`, 'Done', `updateStatus('${escAttr(c.id)}','resolved')`);
+                        }
+                        html += '</div>';
+                    }
+
+                    if (buckets.quiet.length > 0) {
+                        html += `<div class="attention-bucket">
+                            <div class="bucket-header">
+                                <div class="bucket-icon quiet"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="10" y1="15" x2="10" y2="15.01"/><line x1="14" y1="15" x2="14" y2="15.01"/><path d="M10 10V8"/><path d="M14 10V8"/></svg></div>
+                                <div class="bucket-title">They've gone quiet</div>
+                            </div>`;
+                        for (const c of buckets.quiet) {
+                            html += renderAttnCard(c, 'Nudge', `nudge('${escAttr(c.id)}','${escAttr(c.chat_jid)}')`, 'Done', `updateStatus('${escAttr(c.id)}','resolved')`);
+                        }
+                        html += '</div>';
+                    }
+
+                    if (buckets.dying.length > 0) {
+                        html += `<div class="attention-bucket">
+                            <div class="bucket-header">
+                                <div class="bucket-icon dark"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg></div>
+                                <div class="bucket-title">Dying in the dark</div>
+                            </div>`;
+                        for (const c of buckets.dying) {
+                            const primary = c.direction === 'you_owe' ? ['Reply', `showReply('${escAttr(c.id)}','${escAttr(c.chat_jid)}')`] : ['Nudge', `nudge('${escAttr(c.id)}','${escAttr(c.chat_jid)}')`];
+                            html += renderAttnCard(c, primary[0], primary[1], 'Archive', `updateStatus('${escAttr(c.id)}','dismissed')`);
+                        }
+                        html += '</div>';
+                    }
+
+                    html += '</div>';
+                    html += '<div class="people-label">By person</div>';
+                }
+            }
+
+            html += renderGroupsHTML(groups);
+
+            if (isOpenTab && autoResolved && autoResolved.length > 0) {
+                html += '<div class="auto-resolved-section">';
+                html += `<button class="auto-resolved-toggle" onclick="toggleAutoResolved(this)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                    Recently auto-resolved (${autoResolved.length})
+                </button>`;
+                html += '<div class="auto-resolved-list" style="display:none;">';
+                for (const c of autoResolved) {
+                    html += `<div class="auto-resolved-item">
+                        <span class="auto-label">auto</span>
+                        ${esc(c.title)} &mdash; ${esc(c.person_name)}
+                    </div>`;
+                }
+                html += '</div></div>';
+            }
+
+            if (isOpenTab && stale && stale.length > 0) {
+                html += '<div class="stale-section">';
+                html += '<div class="stale-header"><span class="stale-title">Worth archiving?</span></div>';
+                for (const c of stale) {
+                    const ageDays = Math.round((Date.now() - new Date(c.created_at).getTime()) / (1000 * 60 * 60 * 24));
+                    html += `<div class="stale-card" id="stale-${escAttr(c.id)}">
+                        <div class="stale-card-info">
+                            <div class="stale-card-title">${esc(c.title)}</div>
+                            <div class="stale-card-meta">${esc(c.person_name)} &middot; ${ageDays}d old</div>
+                        </div>
+                        <div class="stale-card-actions">
+                            <button class="attn-action-btn" title="Still active" onclick="dismissStale('${escAttr(c.id)}')">Keep</button>
+                            <button class="attn-action-btn" title="Archive" onclick="updateStatus('${escAttr(c.id)}','dismissed');document.getElementById('stale-${escAttr(c.id)}').remove()">Archive</button>
+                        </div>
+                    </div>`;
+                }
+                html += '</div>';
+            }
+
             container.innerHTML = html || `<div class="empty-state">
                 <div class="empty-state-title">Nothing here</div>
                 <div class="empty-state-desc">No commitments match this filter.</div>
             </div>`;
+        }
+
+        function dismissStale(id) {
+            document.getElementById('stale-' + id).remove();
+        }
+
+        function toggleAutoResolved(btn) {
+            btn.classList.toggle('open');
+            const list = btn.nextElementSibling;
+            list.style.display = list.style.display === 'none' ? 'block' : 'none';
         }
 
         function esc(s) {
@@ -2622,24 +3241,42 @@
                 return;
             }
             area.classList.remove('hidden');
-            area.innerHTML = '<div style="padding: 10px 0; color: var(--ink-tertiary); font-size: 12px;">Drafting nudge...</div>';
+            area.innerHTML = '<div style="padding: 10px 0; color: var(--ink-tertiary); font-size: 12px;">Drafting nudge options...</div>';
 
             try {
                 const res = await api('/api/followups/nudge', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({id, action: 'draft'})
+                    body: JSON.stringify({id, action: 'draft-tiers'})
                 });
+                const tiers = res.tiers || {};
+                const safeId = escAttr(id);
+                const safeChatJID = escAttr(chatJID);
                 area.innerHTML = `<div class="nudge-preview">
-                    <textarea class="reply-input" id="nudge-text-${escAttr(id)}" rows="2">${esc(res.message)}</textarea>
+                    <div class="nudge-tier-tabs">
+                        <button class="nudge-tier-tab active" onclick="selectNudgeTier('${safeId}','gentle',this)">Gentle</button>
+                        <button class="nudge-tier-tab" onclick="selectNudgeTier('${safeId}','direct',this)">Direct</button>
+                        <button class="nudge-tier-tab" onclick="selectNudgeTier('${safeId}','firm',this)">Firm</button>
+                    </div>
+                    <textarea class="reply-input" id="nudge-text-${safeId}" rows="2">${esc(tiers.gentle || tiers.direct || '')}</textarea>
                     <div style="display: flex; gap: 6px; margin-top: 6px;">
-                        <button class="reply-send-btn" onclick="sendNudge('${escAttr(id)}','${escAttr(chatJID)}')">Send</button>
-                        <button class="action-btn" onclick="document.getElementById('nudge-${escAttr(id)}').classList.add('hidden')">Cancel</button>
+                        <button class="reply-send-btn" onclick="sendNudge('${safeId}','${safeChatJID}')">Send</button>
+                        <button class="action-btn" onclick="document.getElementById('nudge-${safeId}').classList.add('hidden')">Cancel</button>
                     </div>
                 </div>`;
+                area._tiers = tiers;
             } catch (e) {
                 area.innerHTML = '<div style="padding: 10px 0; color: var(--danger); font-size: 12px;">Failed to draft nudge</div>';
             }
+        }
+
+        function selectNudgeTier(id, tier, btn) {
+            const area = document.getElementById('nudge-' + id);
+            const tiers = area._tiers || {};
+            const textarea = document.getElementById('nudge-text-' + id);
+            if (textarea && tiers[tier]) textarea.value = tiers[tier];
+            btn.parentElement.querySelectorAll('.nudge-tier-tab').forEach(t => t.classList.remove('active'));
+            btn.classList.add('active');
         }
 
         async function sendNudge(id, chatJID) {
@@ -2674,9 +3311,20 @@
             }
         }
 
+        let renderedGroupCount = 0;
+        let pendingGroups = [];
+
         function renderGroupsHTML(groups) {
+            renderedGroupCount = 0;
+            pendingGroups = groups;
+            return renderGroupBatch(groups, 0, 20);
+        }
+
+        function renderGroupBatch(groups, start, count) {
             let html = '';
-            for (const group of groups) {
+            let rendered = 0;
+            for (let gi = start; gi < groups.length && rendered < count; gi++) {
+                const group = groups[gi];
                 let filtered = group.commitments;
                 if (!isSearching) {
                     if (currentTab === 'you_owe') filtered = filtered.filter(c => c.direction === 'you_owe');
@@ -2709,7 +3357,8 @@
                     <div class="group-header">
                         <div class="group-header-left">
                             <div class="group-avatar"${avatarStyle}>${getInitials(group.name)}</div>
-                            <span class="group-name">${esc(group.name)}</span>
+                            <span class="group-name" id="gname-${escAttr(group.chat_jid)}">${esc(group.name)}</span>
+                            ${!group.is_group ? `<button class="rename-btn" onclick="event.stopPropagation();startRename('${escAttr(group.chat_jid)}','${escAttr(group.name)}')" title="Rename"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.83 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></button>` : ''}
                             <button class="favorite-btn group-fav-btn ${chatStarClass}" onclick="event.stopPropagation();toggleChatFavorite('${escAttr(group.chat_jid)}','${escAttr(group.name)}',${group.is_group})"><svg viewBox="0 0 24 24" fill="${chatStarFill}" stroke="currentColor" stroke-width="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></button>
                             <button class="mute-btn group-fav-btn ${muteClass}" onclick="event.stopPropagation();toggleChatMute('${escAttr(group.chat_jid)}','${escAttr(group.name)}')" title="${chatMuted ? 'Resume' : 'Pause'}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="9" y1="7" x2="9" y2="17"/><line x1="15" y1="7" x2="15" y2="17"/></svg></button>
                             <span class="group-meta">${metaText}</span>
@@ -2769,8 +3418,24 @@
                     </div>`;
                 }
                 html += '</div>';
+                rendered++;
+            }
+            renderedGroupCount = start + rendered;
+            if (renderedGroupCount < groups.length) {
+                const remaining = groups.length - renderedGroupCount;
+                html += `<div style="text-align:center;padding:16px 0;">
+                    <button class="action-btn" onclick="showMoreGroups()" style="padding:8px 24px;">Show ${Math.min(remaining, 20)} more of ${remaining} remaining</button>
+                </div>`;
             }
             return html;
+        }
+
+        function showMoreGroups() {
+            const container = document.getElementById('commitments-container');
+            const moreBtn = container.querySelector('[onclick="showMoreGroups()"]');
+            if (moreBtn) moreBtn.parentElement.remove();
+            const html = renderGroupBatch(pendingGroups, renderedGroupCount, 20);
+            container.insertAdjacentHTML('beforeend', html);
         }
 
         function timeAgo(dateStr) {
@@ -2998,6 +3663,7 @@
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             el.classList.add('active');
             currentTab = tab;
+            window.scrollTo(0, 0);
             loadDashboard();
         }
 
@@ -3065,6 +3731,119 @@
             else if (hour < 17) timeOfDay = 'Good afternoon';
             el.textContent = userName ? `${timeOfDay}, ${userName}` : timeOfDay;
         }
+        function renderStatsPage(data) {
+            const container = document.getElementById('commitments-container');
+            const s = data.stats || {};
+            const avgDays = s.avg_resolution_ms ? Math.round(s.avg_resolution_ms / (1000 * 86400) * 10) / 10 : 0;
+            let html = '<div class="stats-page">';
+            html += '<div class="stats-grid">';
+            html += `<div class="stat-card"><div class="stat-card-label">Open</div><div class="stat-card-value">${s.open || 0}</div><div class="stat-card-sub">${s.you_owe || 0} you owe, ${s.they_owe || 0} they owe</div></div>`;
+            html += `<div class="stat-card"><div class="stat-card-label">Resolved this week</div><div class="stat-card-value">${s.resolved_week || 0}</div><div class="stat-card-sub">${s.new_week || 0} new this week</div></div>`;
+            html += `<div class="stat-card"><div class="stat-card-label">Resolved this month</div><div class="stat-card-value">${s.resolved_month || 0}</div><div class="stat-card-sub">${s.new_month || 0} new this month</div></div>`;
+            html += `<div class="stat-card"><div class="stat-card-label">Avg resolution time</div><div class="stat-card-value">${avgDays}d</div><div class="stat-card-sub">last 30 days</div></div>`;
+            html += `<div class="stat-card"><div class="stat-card-label">All-time resolved</div><div class="stat-card-value">${s.resolved_total || 0}</div></div>`;
+            html += `<div class="stat-card"><div class="stat-card-label">Messages scanned</div><div class="stat-card-value">${(data.processed_messages || 0).toLocaleString()}</div><div class="stat-card-sub">${(data.total_messages || 0).toLocaleString()} total</div></div>`;
+            html += '</div>';
+
+            if (s.top_people && s.top_people.length > 0) {
+                html += '<div class="stats-section-title">People with open commitments</div>';
+                html += '<div style="background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-md); padding: 4px 16px;">';
+                for (const p of s.top_people) {
+                    const avgText = p.avg_days > 0 ? Math.round(p.avg_days * 10) / 10 + 'd avg' : '';
+                    html += `<div class="person-stat-row">
+                        <div class="person-stat-left">
+                            <div class="group-avatar">${getInitials(p.name)}</div>
+                            <span class="person-stat-name">${esc(p.name)}</span>
+                        </div>
+                        <div class="person-stat-right">
+                            <span class="person-stat-num"><strong>${p.open_count}</strong> open</span>
+                            ${p.resolved_week > 0 ? `<span class="person-stat-num" style="color: var(--growth);">${p.resolved_week} this week</span>` : ''}
+                            ${avgText ? `<span class="person-stat-num">${avgText}</span>` : ''}
+                        </div>
+                    </div>`;
+                }
+                html += '</div>';
+            }
+
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        // My Style
+        async function loadMyStyle() {
+            try {
+                const res = await api('/api/my-style');
+                const textarea = document.getElementById('settings-my-style');
+                if (textarea && res.style) {
+                    textarea.value = res.style;
+                    updateStyleCounter();
+                }
+            } catch (e) {}
+        }
+
+        function updateStyleCounter() {
+            const textarea = document.getElementById('settings-my-style');
+            const counter = document.getElementById('style-counter');
+            if (textarea && counter) {
+                const len = textarea.value.length;
+                counter.textContent = len + ' / 500';
+                counter.style.color = len > 500 ? 'var(--danger)' : 'var(--ink-faint)';
+            }
+        }
+
+        async function saveMyStyle() {
+            const textarea = document.getElementById('settings-my-style');
+            const msg = document.getElementById('style-msg');
+            const style = textarea ? textarea.value.trim() : '';
+            try {
+                await api('/api/my-style', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({style})
+                });
+                msg.style.display = 'block';
+                msg.style.color = 'var(--growth)';
+                msg.textContent = 'Saved.';
+                setTimeout(() => { msg.style.display = 'none'; }, 2000);
+            } catch (e) {
+                msg.style.display = 'block';
+                msg.style.color = 'var(--danger)';
+                msg.textContent = 'Failed to save.';
+            }
+        }
+
+        function startRename(chatJid, currentName) {
+            const span = document.getElementById('gname-' + chatJid);
+            if (!span) return;
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'group-name-input';
+            input.value = currentName;
+            input.addEventListener('blur', () => finishRename(chatJid, input));
+            input.addEventListener('keydown', e => {
+                if (e.key === 'Enter') input.blur();
+                if (e.key === 'Escape') { input.value = currentName; input.blur(); }
+            });
+            span.replaceWith(input);
+            input.focus();
+            input.select();
+        }
+
+        async function finishRename(chatJid, input) {
+            const name = input.value.trim();
+            if (!name) return;
+            try {
+                await api('/api/contacts', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({chat_jid: chatJid, name: name})
+                });
+                loadDashboard();
+            } catch (e) {
+                input.style.borderColor = 'var(--danger)';
+            }
+        }
+
         function loadUserName() {
             fetch('/api/user-name').then(r => r.json()).then(d => {
                 userName = d.name || '';
@@ -3143,6 +3922,7 @@
             }
             loadDebugInfo();
             loadModelSetting();
+            loadMyStyle();
         }
         function closeSettings() { document.getElementById('settings-overlay').classList.remove('active'); }
 
@@ -3162,6 +3942,25 @@
                     body: JSON.stringify({model: sel.value})
                 });
             } catch {}
+        }
+
+        async function triggerLookback() {
+            const dateInput = document.getElementById('lookback-date');
+            const msg = document.getElementById('lookback-msg');
+            const btn = document.getElementById('lookback-btn');
+            if (!dateInput.value) { msg.style.display = 'block'; msg.style.color = 'var(--ink-tertiary)'; msg.textContent = 'Pick a date first'; return; }
+            btn.disabled = true; btn.textContent = 'Scanning...';
+            msg.style.display = 'block'; msg.style.color = 'var(--ink-tertiary)'; msg.textContent = 'Requeuing messages...';
+            try {
+                const r = await api('/api/backfill', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({since: dateInput.value})
+                });
+                if (r.error) { msg.style.color = 'var(--danger)'; msg.textContent = r.error; }
+                else { msg.style.color = 'var(--ink-secondary)'; msg.textContent = `${r.requeued.toLocaleString()} messages requeued for re-scanning. This may take a while.`; }
+            } catch(e) { msg.style.color = 'var(--danger)'; msg.textContent = 'Failed: ' + e.message; }
+            btn.disabled = false; btn.textContent = 'Re-scan';
         }
 
         async function loadDebugInfo() {
@@ -3285,10 +4084,13 @@
             } catch {}
         }, 15000);
 
-        // ── Auto-refresh ──
-        setInterval(() => {
+        // ── Auto-refresh (stats only — full render is too heavy with many groups) ──
+        setInterval(async () => {
             if (document.getElementById('screen-main').classList.contains('active')) {
-                loadDashboard();
+                try {
+                    const stats = await api('/api/commitments/stats');
+                    updateStats(stats);
+                } catch {}
             }
         }, 30000);
 

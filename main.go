@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"os"
@@ -34,6 +35,8 @@ func main() {
 	if err := os.MkdirAll(dataDir, 0700); err != nil {
 		log.Fatalf("failed to create data directory: %v", err)
 	}
+
+	setupLogFile(dataDir)
 
 	db, err := store.Open(filepath.Join(dataDir, "commit.db"))
 	if err != nil {
@@ -129,6 +132,20 @@ func openBrowser(url string) {
 	if err := cmd.Start(); err != nil {
 		log.Printf("Could not open browser: %v — open %s manually", err, url)
 	}
+}
+
+func setupLogFile(dataDir string) {
+	logPath := filepath.Join(dataDir, "commit.log")
+	if info, err := os.Stat(logPath); err == nil && info.Size() > 5*1024*1024 {
+		os.Rename(logPath, logPath+".old")
+	}
+	f, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0600)
+	if err != nil {
+		log.Printf("could not open log file: %v (logging to stderr only)", err)
+		return
+	}
+	log.SetOutput(io.MultiWriter(os.Stderr, f))
+	log.Printf("=== Commit starting ===")
 }
 
 func dataDirectory() (string, error) {

@@ -129,7 +129,7 @@ func (e *Extractor) ProcessBatch(ctx context.Context) error {
 		return nil
 	}
 
-	msgs, err := e.db.GetUnprocessedMessages(50)
+	msgs, err := e.db.GetUnprocessedMessages(100)
 	if err != nil {
 		return fmt.Errorf("get unprocessed: %w", err)
 	}
@@ -232,7 +232,8 @@ func (e *Extractor) ProcessBatch(ctx context.Context) error {
 }
 
 func (e *Extractor) extractFromChat(ctx context.Context, apiKey string, msgs []*store.Message, openCommitments []*store.Commitment) (*extractionResult, error) {
-	prompt := buildExtractionPrompt(msgs, openCommitments)
+	myStyle := e.db.GetMyStyle()
+	prompt := buildExtractionPrompt(msgs, openCommitments, myStyle)
 	model := e.db.GetModel()
 	response, err := callClaude(ctx, apiKey, model, prompt)
 	if err != nil {
@@ -256,7 +257,7 @@ func (e *Extractor) extractFromChat(ctx context.Context, apiKey string, msgs []*
 	return &result, nil
 }
 
-func buildExtractionPrompt(msgs []*store.Message, openCommitments []*store.Commitment) string {
+func buildExtractionPrompt(msgs []*store.Message, openCommitments []*store.Commitment, myStyle string) string {
 	var sb strings.Builder
 	sb.WriteString(`Analyze these WhatsApp messages. Do two things:
 
@@ -304,6 +305,12 @@ If nothing found, return {"commitments": [], "resolved": []}.
 			sb.WriteString(fmt.Sprintf("- [ID: %s] %s: %s (%s)\n", c.ID, dir, c.Title, c.PersonName))
 		}
 		sb.WriteString("\n")
+	}
+
+	if myStyle != "" {
+		sb.WriteString("\nUser's style context (use this to understand their communication patterns):\n")
+		sb.WriteString(myStyle)
+		sb.WriteString("\n\n")
 	}
 
 	sb.WriteString("Messages:\n")

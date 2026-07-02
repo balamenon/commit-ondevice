@@ -5,14 +5,12 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/msfoundry/commit/store"
 	"go.mau.fi/whatsmeow/types/events"
 )
 
 func (c *Client) handleBotCommand(ctx context.Context, evt *events.Message) bool {
 	if !evt.Info.IsFromMe {
-		return false
-	}
-	if !c.isSelfChat(evt) {
 		return false
 	}
 
@@ -21,7 +19,23 @@ func (c *Client) handleBotCommand(ctx context.Context, evt *events.Message) bool
 		return false
 	}
 
-	cmd := strings.TrimSpace(strings.ToLower(text))
+	// @commit context pull — works in any chat
+	lower := strings.TrimSpace(strings.ToLower(text))
+	if strings.HasPrefix(lower, "@commit") {
+		query := strings.TrimSpace(strings.TrimPrefix(lower, "@commit"))
+		response := c.cmdContextPull(evt, query)
+		if response != "" {
+			_ = c.SendMessage(ctx, evt.Info.Chat, response)
+		}
+		return true
+	}
+
+	// Self-chat commands only
+	if !c.isSelfChat(evt) {
+		return false
+	}
+
+	cmd := lower
 	var response string
 
 	switch {
@@ -49,6 +63,51 @@ func (c *Client) handleBotCommand(ctx context.Context, evt *events.Message) bool
 		_ = c.SendMessage(ctx, evt.Info.Chat, response)
 	}
 	return true
+}
+
+func (c *Client) cmdContextPull(evt *events.Message, query string) string {
+	chatJID := evt.Info.Chat.String()
+	commitments, err := c.db.GetOpenCommitmentsForChat(chatJID)
+	if err != nil {
+		return fmt.Sprintf("Error: %v", err)
+	}
+
+	if query != "" {
+		query = strings.ToLower(query)
+		var filtered []*store.Commitment
+		for _, cm := range commitments {
+			if strings.Contains(strings.ToLower(cm.Title), query) ||
+				strings.Contains(strings.ToLower(cm.Context), query) {
+				filtered = append(filtered, cm)
+			}
+		}
+		commitments = filtered
+	}
+
+	if len(commitments) == 0 {
+		if query != "" {
+			return fmt.Sprintf("No open commitments matching \"%s\" in this chat.", query)
+		}
+		return "No open commitments in this chat."
+	}
+
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("*%d open commitments in this chat:*\n\n", len(commitments)))
+	for i, cm := range commitments {
+		if i >= 10 {
+			sb.WriteString(fmt.Sprintf("\n...and %d more", len(commitments)-10))
+			break
+		}
+		arrow := "→ You owe:"
+		if cm.Direction == "they_owe" {
+			arrow = "← They owe:"
+		}
+		sb.WriteString(fmt.Sprintf("%s %s\n", arrow, cm.Title))
+		if cm.DueHint != "" {
+			sb.WriteString(fmt.Sprintf("  📅 %s\n", cm.DueHint))
+		}
+	}
+	return sb.String()
 }
 
 func (c *Client) cmdListCommitments() string {
@@ -259,7 +318,11 @@ commitments — list all open commitments
 owe @person — what you owe someone
 done <text> — mark a commitment resolved
 search <query> — find commitments
-help — show this message`
+help — show this message
+
+*In any chat:*
+@commit — show open commitments for that chat
+@commit <query> — search commitments in that chat`
 }
 
 type commitmentRef struct {

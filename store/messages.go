@@ -108,6 +108,17 @@ func (db *DB) GetRecentMessages(limit int) ([]*Message, error) {
 	return msgs, nil
 }
 
+func (db *DB) RequeueMessagesSince(since time.Time) (int64, error) {
+	result, err := db.conn.Exec(
+		"UPDATE messages SET processed = 0 WHERE timestamp >= ? AND processed = 1",
+		since.Unix(),
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 func (db *DB) GetChatDisplayName(chatJID string) string {
 	var name string
 	db.conn.QueryRow(

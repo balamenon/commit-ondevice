@@ -25,7 +25,7 @@ import (
 	waTypes "go.mau.fi/whatsmeow/types"
 )
 
-const AppVersion = "1.2.0"
+const AppVersion = "1.3.0"
 
 //go:embed static
 var staticFS embed.FS
@@ -139,7 +139,12 @@ func (s *Server) registerRoutes() {
 	s.mux.HandleFunc("/api/user-name", s.requireAuth(s.handleUserName))
 	s.mux.HandleFunc("/api/setup/validate", s.requireAuth(s.handleValidateKey))
 	s.mux.HandleFunc("/api/model", s.requireAuth(s.handleModel))
+	s.mux.HandleFunc("/api/my-style", s.requireAuth(s.handleMyStyle))
+	s.mux.HandleFunc("/api/commitments/detailed-stats", s.requireAuth(s.handleDetailedStats))
+	s.mux.HandleFunc("/api/commitments/stale", s.requireAuth(s.handleStaleCommitments))
+	s.mux.HandleFunc("/api/contacts", s.requireAuth(s.handleContacts))
 	s.mux.HandleFunc("/api/setup/update-key", s.requireAuth(s.handleUpdateKey))
+	s.mux.HandleFunc("/api/backfill", s.requireAuth(s.handleBackfill))
 	s.mux.HandleFunc("/api/debug", s.requireAuth(s.handleDebug))
 	s.mux.HandleFunc("/api/logout", s.requireAuth(s.handleLogout))
 }
@@ -437,6 +442,84 @@ func (s *Server) handleModel(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, map[string]any{"ok": true, "model": body.Model})
 }
 
+func (s *Server) handleMyStyle(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "GET" {
+		writeJSON(w, map[string]string{"style": s.db.GetMyStyle()})
+		return
+	}
+	if r.Method != "POST" {
+		http.Error(w, "method not allowed", 405)
+		return
+	}
+	var body struct {
+		Style string `json:"style"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "bad request", 400)
+		return
+	}
+	if len(body.Style) > 500 {
+		body.Style = body.Style[:500]
+	}
+	if err := s.db.SetMyStyle(body.Style); err != nil {
+		http.Error(w, "failed to save", 500)
+		return
+	}
+	writeJSON(w, map[string]any{"ok": true})
+}
+
+func (s *Server) handleContacts(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "GET" {
+		contacts, err := s.db.GetChatContacts()
+		if err != nil {
+			http.Error(w, "failed to get contacts", 500)
+			return
+		}
+		if contacts == nil {
+			contacts = []store.ChatContact{}
+		}
+		writeJSON(w, contacts)
+		return
+	}
+	if r.Method != "POST" {
+		http.Error(w, "method not allowed", 405)
+		return
+	}
+	var body struct {
+		ChatJID string `json:"chat_jid"`
+		Name    string `json:"name"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "bad request", 400)
+		return
+	}
+	overrides := s.db.GetContactOverrides()
+	if body.Name == "" {
+		delete(overrides, body.ChatJID)
+	} else {
+		overrides[body.ChatJID] = body.Name
+	}
+	if err := s.db.SetContactOverrides(overrides); err != nil {
+		http.Error(w, "failed to save", 500)
+		return
+	}
+	writeJSON(w, map[string]any{"ok": true})
+}
+
+func (s *Server) handleDetailedStats(w http.ResponseWriter, r *http.Request) {
+	stats, err := s.db.GetDetailedStats()
+	if err != nil {
+		http.Error(w, "failed to get stats", 500)
+		return
+	}
+	totalMsgs, processedMsgs, _ := s.db.GetMessageStats()
+	writeJSON(w, map[string]any{
+		"stats":              stats,
+		"total_messages":     totalMsgs,
+		"processed_messages": processedMsgs,
+	})
+}
+
 func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		http.Error(w, "method not allowed", 405)
@@ -593,6 +676,18 @@ func (s *Server) handleUpdateCommitment(w http.ResponseWriter, r *http.Request) 
 
 func (s *Server) handleAutoResolved(w http.ResponseWriter, r *http.Request) {
 	items, err := s.db.GetRecentlyAutoResolved()
+	if err != nil {
+		http.Error(w, "failed", 500)
+		return
+	}
+	if items == nil {
+		items = []*store.Commitment{}
+	}
+	writeJSON(w, items)
+}
+
+func (s *Server) handleStaleCommitments(w http.ResponseWriter, r *http.Request) {
+	items, err := s.db.GetStaleCommitments(14)
 	if err != nil {
 		http.Error(w, "failed", 500)
 		return
@@ -862,6 +957,17 @@ func (s *Server) handleNudge(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if body.Action == "draft-tiers" {
+		tiers, err := s.callNudgeTiersWithFallback(r.Context(), apiKey, target)
+		if err != nil {
+			log.Printf("nudge tiers error: %v", err)
+			http.Error(w, "failed to generate nudge tiers", 500)
+			return
+		}
+		writeJSON(w, map[string]any{"tiers": tiers})
+		return
+	}
+
 	msg, err := s.callNudgeWithFallback(r.Context(), apiKey, target)
 	if err != nil {
 		log.Printf("nudge draft error: %v", err)
@@ -882,6 +988,32 @@ func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, map[string]any{"ok": true})
+}
+
+func (s *Server) handleBackfill(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "method not allowed", 405)
+		return
+	}
+	var req struct {
+		Since string `json:"since"` // YYYY-MM-DD
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSON(w, map[string]any{"error": "invalid request"})
+		return
+	}
+	since, err := time.Parse("2006-01-02", req.Since)
+	if err != nil {
+		writeJSON(w, map[string]any{"error": "invalid date format, use YYYY-MM-DD"})
+		return
+	}
+	count, err := s.db.RequeueMessagesSince(since)
+	if err != nil {
+		writeJSON(w, map[string]any{"error": err.Error()})
+		return
+	}
+	log.Printf("backfill: requeued %d messages since %s", count, req.Since)
+	writeJSON(w, map[string]any{"ok": true, "requeued": count})
 }
 
 func (s *Server) handleDebug(w http.ResponseWriter, r *http.Request) {

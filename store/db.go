@@ -7,6 +7,7 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"io"
 	"sync"
@@ -116,7 +117,18 @@ func (db *DB) migrate() error {
 		)`)
 	}
 
-	db.setSchemaVersion(2)
+	if version < 3 {
+		db.conn.Exec("ALTER TABLE commitments ADD COLUMN resolved_by TEXT NOT NULL DEFAULT 'user'")
+		db.conn.Exec("ALTER TABLE commitments ADD COLUMN last_nudged_at INTEGER")
+		db.conn.Exec("ALTER TABLE commitments ADD COLUMN reminder_at INTEGER")
+	}
+
+	if version < 4 {
+		db.conn.Exec("CREATE INDEX IF NOT EXISTS idx_messages_chat_inbound ON messages(chat_jid, timestamp) WHERE is_from_me = 0")
+		db.conn.Exec("CREATE INDEX IF NOT EXISTS idx_commitments_open_direction ON commitments(status, direction, created_at) WHERE status = 'open'")
+	}
+
+	db.setSchemaVersion(4)
 	return nil
 }
 
@@ -289,8 +301,8 @@ func (db *DB) decrypt(stored string) (string, error) {
 
 // Model
 
-const DefaultModel = "claude-sonnet-4-20250514"
-const FallbackModel = "claude-3-5-sonnet-20241022"
+const DefaultModel = "claude-sonnet-4-6-20250620"
+const FallbackModel = "claude-haiku-4-5-20251001"
 
 func (db *DB) GetModel() string {
 	m := db.GetSetting("claude_model")
@@ -302,6 +314,38 @@ func (db *DB) GetModel() string {
 
 func (db *DB) SetModel(model string) error {
 	return db.SetSetting("claude_model", model)
+}
+
+// My Style
+
+func (db *DB) GetMyStyle() string {
+	return db.GetSetting("my_style")
+}
+
+func (db *DB) SetMyStyle(style string) error {
+	return db.SetSetting("my_style", style)
+}
+
+// Contact Overrides — map chat_jid to display name
+
+func (db *DB) GetContactOverrides() map[string]string {
+	raw := db.GetSetting("contact_overrides")
+	if raw == "" {
+		return map[string]string{}
+	}
+	var m map[string]string
+	if err := json.Unmarshal([]byte(raw), &m); err != nil {
+		return map[string]string{}
+	}
+	return m
+}
+
+func (db *DB) SetContactOverrides(overrides map[string]string) error {
+	data, err := json.Marshal(overrides)
+	if err != nil {
+		return err
+	}
+	return db.SetSetting("contact_overrides", string(data))
 }
 
 // API Key (encrypted at rest)

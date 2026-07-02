@@ -490,7 +490,7 @@ func (c *Client) handleHistorySync(evt *events.HistorySync) {
 				continue
 			}
 			msgTime := time.Unix(int64(ts), 0)
-			if msgTime.Before(time.Now().AddDate(0, 0, -3)) {
+			if msgTime.Before(time.Now().AddDate(0, 0, -7)) {
 				continue
 			}
 
