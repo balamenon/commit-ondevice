@@ -1,7 +1,6 @@
 package server
 
 import (
-	"bytes"
 	"context"
 	"crypto/rand"
 	"embed"
@@ -13,11 +12,11 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/msfoundry/commit/extraction"
+	"github.com/msfoundry/commit/localmodel"
 	"github.com/msfoundry/commit/store"
 	"github.com/msfoundry/commit/whatsapp"
 
@@ -31,13 +30,14 @@ const AppVersion = "1.3.0"
 var staticFS embed.FS
 
 type Server struct {
-	db           *store.DB
-	wa           *whatsapp.Client
-	extractor    *extraction.Extractor
-	port         int
-	mux          *http.ServeMux
-	sessions     sync.Map // token -> expiry time
-	startedAt    time.Time
+	db            *store.DB
+	wa            *whatsapp.Client
+	extractor     *extraction.Extractor
+	port          int
+	mux           *http.ServeMux
+	modelRuntime  *localmodel.Manager
+	sessions      sync.Map // token -> expiry time
+	startedAt     time.Time
 	loginAttempts sync.Map // ip -> *loginThrottle
 }
 
@@ -46,8 +46,8 @@ type loginThrottle struct {
 	lastFail time.Time
 }
 
-func New(db *store.DB, wa *whatsapp.Client, ext *extraction.Extractor, port int) *Server {
-	s := &Server{db: db, wa: wa, extractor: ext, port: port, startedAt: time.Now()}
+func New(db *store.DB, wa *whatsapp.Client, ext *extraction.Extractor, port int, modelRuntime *localmodel.Manager) *Server {
+	s := &Server{db: db, wa: wa, extractor: ext, port: port, modelRuntime: modelRuntime, startedAt: time.Now()}
 	s.mux = http.NewServeMux()
 	s.registerRoutes()
 	go s.cleanupThrottles()
@@ -138,6 +138,7 @@ func (s *Server) registerRoutes() {
 	s.mux.HandleFunc("/api/local-ip", s.requireAuth(s.handleLocalIP))
 	s.mux.HandleFunc("/api/user-name", s.requireAuth(s.handleUserName))
 	s.mux.HandleFunc("/api/setup/validate", s.requireAuth(s.handleValidateKey))
+	s.mux.HandleFunc("/api/local-model/status", s.requireAuth(s.handleLocalModelStatus))
 	s.mux.HandleFunc("/api/model", s.requireAuth(s.handleModel))
 	s.mux.HandleFunc("/api/my-style", s.requireAuth(s.handleMyStyle))
 	s.mux.HandleFunc("/api/commitments/detailed-stats", s.requireAuth(s.handleDetailedStats))
@@ -240,7 +241,7 @@ func (s *Server) handleAuthSetup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Re-encrypt the API key if one exists
+	// Re-encrypt the local credential marker if one exists.
 	apiKey := s.db.GetAPIKey()
 	if apiKey != "" {
 		s.db.SetAPIKey(apiKey)
@@ -326,8 +327,7 @@ func (s *Server) handleSetup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if body.APIKey == "" {
-		http.Error(w, "api_key required", 400)
-		return
+		body.APIKey = "local-mlx"
 	}
 	if err := s.db.SetAPIKey(body.APIKey); err != nil {
 		http.Error(w, "failed to save key", 500)
@@ -348,15 +348,14 @@ func (s *Server) handleValidateKey(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "bad request", 400)
 		return
 	}
-	if body.APIKey == "" {
-		http.Error(w, "api_key required", 400)
-		return
-	}
-
 	model := s.db.GetModel()
 	valid, detectedModel := s.validateKeyWithModel(r.Context(), body.APIKey, model)
 	if !valid {
-		writeJSON(w, map[string]any{"valid": false, "error": "invalid API key"})
+		errText := detectedModel
+		if errText == "" {
+			errText = "local MLX server is not reachable"
+		}
+		writeJSON(w, map[string]any{"valid": false, "error": errText})
 		return
 	}
 	if detectedModel != model {
@@ -378,8 +377,7 @@ func (s *Server) handleUpdateKey(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if body.APIKey == "" {
-		http.Error(w, "api_key required", 400)
-		return
+		body.APIKey = "local-mlx"
 	}
 	if err := s.db.SetAPIKey(body.APIKey); err != nil {
 		http.Error(w, "failed to save key", 500)
@@ -388,38 +386,40 @@ func (s *Server) handleUpdateKey(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, map[string]any{"ok": true})
 }
 
+func (s *Server) handleLocalModelStatus(w http.ResponseWriter, r *http.Request) {
+	if s.modelRuntime == nil {
+		writeJSON(w, map[string]any{
+			"phase":  "error",
+			"ready":  false,
+			"error":  "local model runtime is not configured",
+			"models": []any{},
+		})
+		return
+	}
+	s.modelRuntime.Start(r.Context())
+	writeJSON(w, s.modelRuntime.Status())
+}
+
 func (s *Server) validateKeyWithModel(ctx context.Context, apiKey, model string) (bool, string) {
-	models := []string{model}
-	if model != store.FallbackModel {
-		models = append(models, store.FallbackModel)
+	if s.modelRuntime != nil {
+		s.modelRuntime.Start(ctx)
+		status := s.modelRuntime.Status()
+		if !status.Ready {
+			if status.Error != "" {
+				return false, status.Error
+			}
+			if status.Detail != "" {
+				return false, status.Detail
+			}
+			return false, "local Gemma is still preparing"
+		}
 	}
-	for _, m := range models {
-		req, _ := http.NewRequestWithContext(ctx, "POST", "https://api.anthropic.com/v1/messages",
-			bytes.NewReader([]byte(fmt.Sprintf(`{"model":"%s","max_tokens":1,"messages":[{"role":"user","content":"hi"}]}`, m))))
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("x-api-key", apiKey)
-		req.Header.Set("anthropic-version", "2023-06-01")
-
-		resp, err := http.DefaultClient.Do(req)
-		if err != nil {
-			continue
-		}
-		respBody, _ := io.ReadAll(resp.Body)
-		resp.Body.Close()
-
-		// 401 = bad key, definitely invalid
-		if resp.StatusCode == 401 {
-			return false, ""
-		}
-		// 404 with not_found_error = model doesn't exist, try next
-		if resp.StatusCode == 404 && strings.Contains(string(respBody), "not_found_error") {
-			continue
-		}
-		// Anything else (200, 400, 429, 529) = key is valid, model works
-		return true, m
+	_, err := extraction.CallLocalLLM(ctx, model, "Reply with ok.", 4)
+	if err != nil {
+		log.Printf("local llm validation failed: %v", err)
+		return false, ""
 	}
-	// All models returned 404 — key might still be valid, accept with fallback
-	return true, store.FallbackModel
+	return true, model
 }
 
 func (s *Server) handleModel(w http.ResponseWriter, r *http.Request) {
@@ -737,8 +737,8 @@ func (s *Server) handleSetReminder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var body struct {
-		ID        string `json:"id"`
-		RemindAt  string `json:"remind_at"` // ISO 8601 or empty to clear
+		ID       string `json:"id"`
+		RemindAt string `json:"remind_at"` // ISO 8601 or empty to clear
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		http.Error(w, "bad request", 400)
@@ -956,7 +956,7 @@ func (s *Server) handleNudge(w http.ResponseWriter, r *http.Request) {
 
 	apiKey := s.db.GetAPIKey()
 	if apiKey == "" {
-		http.Error(w, "no API key", 400)
+		http.Error(w, "local LLM not configured", 400)
 		return
 	}
 

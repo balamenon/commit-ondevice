@@ -2,10 +2,13 @@ package whatsapp
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sync"
 	"time"
 
@@ -22,6 +25,10 @@ import (
 
 	_ "modernc.org/sqlite"
 )
+
+const maxMediaDownloadBytes = 25 * 1024 * 1024
+
+var safeFileChars = regexp.MustCompile(`[^a-zA-Z0-9._-]+`)
 
 type Extractor interface {
 	StartProcessingLoop(ctx context.Context)
@@ -278,6 +285,8 @@ func (c *Client) handleMessage(evt *events.Message) {
 
 	if err := c.db.SaveMessage(msg); err != nil {
 		log.Printf("save message error: %v", err)
+	} else {
+		go c.downloadMessageMedia(context.Background(), msg, evt.Message)
 	}
 }
 
@@ -453,7 +462,172 @@ func extractText(msg *waE2E.Message) string {
 	if msg.ExtendedTextMessage != nil && msg.ExtendedTextMessage.Text != nil {
 		return *msg.ExtendedTextMessage.Text
 	}
+	if msg.ImageMessage != nil {
+		return mediaText("Image", msg.ImageMessage.GetCaption(), "")
+	}
+	if msg.VideoMessage != nil {
+		return mediaText("Video", msg.VideoMessage.GetCaption(), "")
+	}
+	if msg.PtvMessage != nil {
+		return mediaText("Video note", msg.PtvMessage.GetCaption(), "")
+	}
+	if msg.DocumentMessage != nil {
+		name := msg.DocumentMessage.GetFileName()
+		if name == "" {
+			name = msg.DocumentMessage.GetTitle()
+		}
+		return mediaText("Document", msg.DocumentMessage.GetCaption(), name)
+	}
+	if msg.AudioMessage != nil {
+		label := "Audio"
+		if msg.AudioMessage.GetPTT() {
+			label = "Voice note"
+		}
+		return mediaText(label, msg.AudioMessage.GetAccessibilityLabel(), msg.AudioMessage.GetMimetype())
+	}
+	if msg.StickerMessage != nil {
+		return "[Sticker]"
+	}
+	if msg.ContactMessage != nil {
+		return mediaText("Contact", msg.ContactMessage.GetDisplayName(), "")
+	}
+	if msg.LocationMessage != nil {
+		detail := strings.TrimSpace(strings.Join([]string{
+			msg.LocationMessage.GetName(),
+			msg.LocationMessage.GetAddress(),
+			msg.LocationMessage.GetURL(),
+			msg.LocationMessage.GetComment(),
+		}, " "))
+		if detail == "" {
+			detail = fmt.Sprintf("%f,%f", msg.LocationMessage.GetDegreesLatitude(), msg.LocationMessage.GetDegreesLongitude())
+		}
+		return mediaText("Location", detail, "")
+	}
 	return ""
+}
+
+func mediaText(kind, text, extra string) string {
+	parts := []string{"[" + kind + "]"}
+	if extra = strings.TrimSpace(extra); extra != "" {
+		parts = append(parts, extra)
+	}
+	if text = strings.TrimSpace(text); text != "" {
+		parts = append(parts, text)
+	}
+	return strings.Join(parts, " ")
+}
+
+func (c *Client) downloadMessageMedia(ctx context.Context, msg *store.Message, waMsg *waE2E.Message) {
+	if msg == nil || waMsg == nil {
+		return
+	}
+	downloadable, mediaType, mimeType, fileName, caption := mediaInfo(waMsg)
+	if downloadable == nil {
+		return
+	}
+
+	c.mu.RLock()
+	wa := c.wa
+	c.mu.RUnlock()
+	if wa == nil {
+		return
+	}
+
+	data, err := wa.Download(ctx, downloadable)
+	if err != nil {
+		log.Printf("media download failed for %s: %v", msg.ID, err)
+		return
+	}
+	if len(data) == 0 {
+		return
+	}
+	if len(data) > maxMediaDownloadBytes {
+		log.Printf("media skipped for %s: %d bytes exceeds limit", msg.ID, len(data))
+		return
+	}
+
+	hash := sha256.Sum256(data)
+	assetID := hex.EncodeToString(hash[:])
+	mediaDir := filepath.Join(c.dataDir, "media", msg.ChatJID)
+	if err := os.MkdirAll(mediaDir, 0700); err != nil {
+		log.Printf("media dir error: %v", err)
+		return
+	}
+
+	if fileName == "" {
+		fileName = msg.ID + extensionForMime(mimeType)
+	}
+	fileName = safeFileChars.ReplaceAllString(fileName, "_")
+	if fileName == "" {
+		fileName = assetID
+	}
+	path := filepath.Join(mediaDir, assetID+"_"+fileName)
+	if err := os.WriteFile(path, data, 0600); err != nil {
+		log.Printf("media save failed for %s: %v", msg.ID, err)
+		return
+	}
+
+	if err := c.db.SaveMediaAsset(&store.MediaAsset{
+		ID:        assetID,
+		MessageID: msg.ID,
+		ChatJID:   msg.ChatJID,
+		MediaType: mediaType,
+		MimeType:  mimeType,
+		FileName:  fileName,
+		Path:      path,
+		Caption:   caption,
+		Timestamp: msg.Timestamp,
+	}); err != nil {
+		log.Printf("media asset save failed for %s: %v", msg.ID, err)
+	}
+}
+
+func mediaInfo(msg *waE2E.Message) (whatsmeow.DownloadableMessage, string, string, string, string) {
+	switch {
+	case msg.ImageMessage != nil:
+		return msg.ImageMessage, "image", msg.ImageMessage.GetMimetype(), "", msg.ImageMessage.GetCaption()
+	case msg.VideoMessage != nil:
+		return msg.VideoMessage, "video", msg.VideoMessage.GetMimetype(), "", msg.VideoMessage.GetCaption()
+	case msg.PtvMessage != nil:
+		return msg.PtvMessage, "video", msg.PtvMessage.GetMimetype(), "", msg.PtvMessage.GetCaption()
+	case msg.DocumentMessage != nil:
+		name := msg.DocumentMessage.GetFileName()
+		if name == "" {
+			name = msg.DocumentMessage.GetTitle()
+		}
+		return msg.DocumentMessage, "document", msg.DocumentMessage.GetMimetype(), name, msg.DocumentMessage.GetCaption()
+	case msg.AudioMessage != nil:
+		kind := "audio"
+		if msg.AudioMessage.GetPTT() {
+			kind = "voice"
+		}
+		return msg.AudioMessage, kind, msg.AudioMessage.GetMimetype(), "", msg.AudioMessage.GetAccessibilityLabel()
+	case msg.StickerMessage != nil:
+		return msg.StickerMessage, "sticker", msg.StickerMessage.GetMimetype(), "", ""
+	default:
+		return nil, "", "", "", ""
+	}
+}
+
+func extensionForMime(mimeType string) string {
+	switch strings.ToLower(strings.Split(mimeType, ";")[0]) {
+	case "image/jpeg":
+		return ".jpg"
+	case "image/png":
+		return ".png"
+	case "image/webp":
+		return ".webp"
+	case "video/mp4":
+		return ".mp4"
+	case "audio/ogg":
+		return ".ogg"
+	case "audio/mpeg":
+		return ".mp3"
+	case "application/pdf":
+		return ".pdf"
+	default:
+		return ""
+	}
 }
 
 func (c *Client) reminderLoop(ctx context.Context) {
@@ -588,6 +762,7 @@ func (c *Client) handleHistorySync(evt *events.HistorySync) {
 			}
 			if err := c.db.SaveMessage(msg); err == nil {
 				count++
+				go c.downloadMessageMedia(context.Background(), msg, webMsg.GetMessage())
 			}
 		}
 	}
@@ -595,4 +770,3 @@ func (c *Client) handleHistorySync(evt *events.HistorySync) {
 		log.Printf("history sync: saved %d messages from %d conversations", count, len(conversations))
 	}
 }
-

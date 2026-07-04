@@ -135,6 +135,12 @@ func (e *Extractor) ProcessBatch(ctx context.Context) error {
 		return fmt.Errorf("get unprocessed: %w", err)
 	}
 	if len(msgs) == 0 {
+		if err := e.IndexPendingMessages(ctx, 100); err != nil {
+			log.Printf("semantic backfill failed: %v", err)
+		}
+		if err := e.IndexPendingMedia(ctx, 20); err != nil {
+			log.Printf("media indexing failed: %v", err)
+		}
 		e.debugMu.Lock()
 		e.lastRunAt = time.Now()
 		e.batchesRun++
@@ -142,6 +148,12 @@ func (e *Extractor) ProcessBatch(ctx context.Context) error {
 		return nil
 	}
 	log.Printf("processing %d unprocessed messages", len(msgs))
+	if err := e.indexMessages(ctx, msgs); err != nil {
+		log.Printf("semantic indexing failed: %v", err)
+	}
+	if err := e.IndexPendingMedia(ctx, 20); err != nil {
+		log.Printf("media indexing failed: %v", err)
+	}
 
 	grouped := groupMessagesByChat(msgs)
 	mutedChats, _ := e.db.GetMutedChatJIDs()
@@ -241,13 +253,13 @@ func (e *Extractor) extractFromChat(ctx context.Context, apiKey string, msgs []*
 	myStyle := e.db.GetMyStyle()
 	prompt := buildExtractionPrompt(msgs, openCommitments, myStyle)
 	model := e.db.GetModel()
-	response, err := callClaude(ctx, apiKey, model, prompt)
+	response, err := callLocalLLM(ctx, apiKey, model, prompt)
 	if err != nil {
 		// Auto-fallback: if model not found, try fallback and save it
 		if _, ok := err.(*ModelNotFoundError); ok && model != store.FallbackModel {
 			log.Printf("model %s not available, falling back to %s", model, store.FallbackModel)
 			e.db.SetModel(store.FallbackModel)
-			response, err = callClaude(ctx, apiKey, store.FallbackModel, prompt)
+			response, err = callLocalLLM(ctx, apiKey, store.FallbackModel, prompt)
 		}
 		if err != nil {
 			return nil, err
@@ -449,6 +461,13 @@ func (e *Extractor) RunResolutionSweep(ctx context.Context) error {
 		return nil
 	}
 
+	if err := e.IndexPendingMessages(ctx, 200); err != nil {
+		log.Printf("semantic backfill failed: %v", err)
+	}
+	if err := e.IndexPendingMedia(ctx, 20); err != nil {
+		log.Printf("media indexing failed: %v", err)
+	}
+
 	since := time.Now().Add(-48 * time.Hour)
 	chatJIDs, err := e.db.GetChatsWithRecentOutbound(since)
 	if err != nil {
@@ -470,7 +489,7 @@ func (e *Extractor) RunResolutionSweep(ctx context.Context) error {
 		}
 
 		prompt := buildResolutionPrompt(msgs, commitments)
-		response, err := callClaude(ctx, apiKey, store.FallbackModel, prompt)
+		response, err := callLocalLLM(ctx, apiKey, store.FallbackModel, prompt)
 		if err != nil {
 			if strings.Contains(err.Error(), "429") {
 				return err

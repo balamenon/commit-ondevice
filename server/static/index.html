@@ -2279,7 +2279,7 @@
                             </div>
                             <div class="onboarding-feature-text">
                                 <h4>Extracts automatically</h4>
-                                <p>Uses Claude to find who promised what, with the original quote.</p>
+                                <p>Uses local Gemma models to find who promised what, with the original quote.</p>
                             </div>
                         </div>
                         <div class="onboarding-feature">
@@ -2301,7 +2301,7 @@
                     </div>
                     <div class="onboarding-title">Your data stays yours</div>
                     <div class="onboarding-desc">
-                        Commit runs entirely on your machine. Messages are decrypted locally and stored in a local database. Message content is sent to the Claude API for commitment analysis — Anthropic does not train on API inputs. No cloud storage. No telemetry.
+                        Commit runs entirely on your machine. Messages are decrypted locally, stored in a local database, indexed with EmbeddingGemma, and analyzed by your local MLX server. No cloud storage. No telemetry.
                     </div>
                 </div>
 
@@ -2347,7 +2347,7 @@
                 <div class="setup-step-label">Step 1 of 3</div>
                 <div class="setup-step-title">Set a Passcode</div>
                 <div class="setup-step-desc">
-                    Protect your data with a passcode. This encrypts your API key and secures the web interface.
+                    Protect your data with a passcode. This secures the web interface and local model settings.
                 </div>
                 <input type="password" class="setup-input" id="passcode-input" placeholder="Choose a passcode (6+ characters)" />
                 <input type="password" class="setup-input" id="passcode-confirm" placeholder="Confirm passcode" style="margin-top: 8px;" />
@@ -2371,17 +2371,20 @@
             <div class="setup-tagline">Stay on top of things.</div>
             <div class="setup-card">
                 <div class="setup-step-label">Step 2 of 3</div>
-                <div class="setup-step-title">Claude API Key</div>
+                <div class="setup-step-title">Local Gemma</div>
                 <div class="setup-step-desc">
-                    Commit uses Claude to understand your conversations and extract commitments. Your key stays local — nothing leaves your machine except API calls.
+                    Commit will download and start local Gemma models on this Mac. This can take a while the first time.
                 </div>
-                <input type="password" class="setup-input" id="api-key-input" placeholder="sk-ant-api03-..." />
-                <button class="btn-primary" id="setup-btn">
-                    Continue
+                <div id="local-model-status" style="margin: 14px 0; padding: 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface-sunken); font-size: 12px; color: var(--ink-secondary); line-height: 1.5;">
+                    Preparing local models...
+                </div>
+                <input type="hidden" class="setup-input" id="api-key-input" value="local-mlx" />
+                <button class="btn-primary" id="setup-btn" disabled>
+                    Preparing Local Model
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                 </button>
                 <div class="setup-note">
-                    Get your key from <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a>. It's stored locally and never shared.
+                    Models are cached locally and reused on future launches.
                 </div>
             </div>
         </div>
@@ -2438,7 +2441,7 @@
                     <span>Ready to go</span>
                 </div>
             </div>
-            <div style="margin-top: 24px; font-size: 11px; color: var(--ink-faint); line-height: 1.5;">Your recent messages will be sent to the Claude API for analysis. This uses your API key and may incur usage costs.</div>
+            <div style="margin-top: 24px; font-size: 11px; color: var(--ink-faint); line-height: 1.5;">Your recent messages will be analyzed and indexed locally by Gemma models through MLX.</div>
         </div>
     </div>
 
@@ -2539,21 +2542,19 @@
             <div class="settings-group">
                 <div class="settings-group-title">Model</div>
                 <div class="settings-row">
-                    <span class="settings-row-label">Claude model</span>
+                    <span class="settings-row-label">Local generation model</span>
                     <select id="settings-model" onchange="updateModel()" style="font-size: 13px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface-sunken); color: var(--ink); font-family: inherit; cursor: pointer;">
-                        <option value="claude-sonnet-4-6-20250620">Claude Sonnet 4.6 (latest)</option>
-                        <option value="claude-sonnet-4-20250514">Claude Sonnet 4</option>
-                        <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 (fast/cheap)</option>
+                        <option value="mlx-community/gemma-4-12B-it-qat-4bit">Gemma 4 12B MLX QAT 4-bit</option>
                     </select>
                 </div>
             </div>
             <div class="settings-group">
-                <div class="settings-group-title">API Key</div>
+                <div class="settings-group-title">Local LLM</div>
                 <div class="settings-row" style="flex-direction: column; align-items: flex-start; gap: 8px;">
-                    <span class="settings-row-label">Update your Anthropic API key</span>
+                    <span class="settings-row-label">Re-check local MLX server</span>
                     <div style="display: flex; gap: 6px; align-items: center; width: 100%;">
-                        <input type="password" id="settings-api-key" placeholder="sk-ant-..." style="font-size: 13px; padding: 5px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface-sunken); color: var(--ink); font-family: inherit; flex: 1;" />
-                        <button class="topbar-btn" id="settings-api-key-btn" onclick="updateApiKey()" style="padding: 5px 10px; white-space: nowrap;">Update</button>
+                        <input type="hidden" id="settings-api-key" value="local-mlx" />
+                        <button class="topbar-btn" id="settings-api-key-btn" onclick="updateApiKey()" style="padding: 5px 10px; white-space: nowrap;">Check</button>
                     </div>
                     <div id="api-key-msg" style="font-size: 11px; display: none;"></div>
                 </div>
@@ -2634,6 +2635,7 @@
         let favChats = {};
         let mutedChats = {};
         let isSearching = false;
+        let localModelPoll = null;
 
         // ── API helpers ──
         async function api(path, opts) {
@@ -2651,6 +2653,85 @@
         function goToScreen(id) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById(id).classList.add('active');
+            if (id === 'screen-setup') startLocalModelPolling();
+            else stopLocalModelPolling();
+        }
+
+        function startLocalModelPolling() {
+            if (localModelPoll) return;
+            loadLocalModelStatus();
+            localModelPoll = setInterval(loadLocalModelStatus, 2000);
+        }
+
+        function stopLocalModelPolling() {
+            if (!localModelPoll) return;
+            clearInterval(localModelPoll);
+            localModelPoll = null;
+        }
+
+        async function loadLocalModelStatus() {
+            const box = document.getElementById('local-model-status');
+            const btn = document.getElementById('setup-btn');
+            if (!box || !btn) return;
+            try {
+                const status = await api('/api/local-model/status');
+                renderLocalModelStatus(status);
+            } catch (e) {
+                box.innerHTML = `<div style="color: var(--danger);">Unable to check local model status: ${esc(e.message)}</div>`;
+                btn.disabled = true;
+                btn.innerHTML = setupButtonHTML('Preparing Local Model');
+            }
+        }
+
+        function renderLocalModelStatus(status) {
+            const box = document.getElementById('local-model-status');
+            const btn = document.getElementById('setup-btn');
+            const phaseLabel = localModelPhaseLabel(status.phase);
+            let html = `<div style="font-weight: 600; color: var(--ink); margin-bottom: 6px;">${esc(phaseLabel)}</div>`;
+            if (status.detail) html += `<div style="margin-bottom: 8px;">${esc(status.detail)}</div>`;
+            if (status.error) html += `<div style="color: var(--danger); margin-bottom: 8px;">${esc(status.error)}</div>`;
+            if (status.models && status.models.length) {
+                html += '<div style="display: grid; gap: 5px;">';
+                html += status.models.map(m => {
+                    const pct = m.total_bytes ? Math.min(100, Math.round((m.bytes / m.total_bytes) * 100)) : 0;
+                    const state = m.cached ? 'Cached' : (m.downloading ? `Downloading ${pct}%` : 'Waiting');
+                    const color = m.cached ? 'var(--growth)' : (m.downloading ? 'var(--ink)' : 'var(--ink-tertiary)');
+                    const size = m.bytes ? ` · ${formatBytes(m.bytes)}${m.total_bytes ? ' / ' + formatBytes(m.total_bytes) : ''}` : '';
+                    return `<div style="display: flex; justify-content: space-between; gap: 10px;"><span>${esc(m.label)}</span><span style="color:${color}; white-space: nowrap;">${state}${size}</span></div>`;
+                }).join('');
+                html += '</div>';
+            }
+            if (status.server_running) {
+                html += '<div style="margin-top: 8px; color: var(--growth);">Local MLX server is running.</div>';
+            }
+            box.innerHTML = html;
+
+            btn.disabled = !status.ready;
+            btn.innerHTML = setupButtonHTML(status.ready ? 'Continue' : 'Preparing Local Model');
+        }
+
+        function localModelPhaseLabel(phase) {
+            switch (phase) {
+                case 'installing': return 'Installing local AI runtime';
+                case 'checking': return 'Checking local model files';
+                case 'downloading': return 'Downloading local models';
+                case 'starting_server': return 'Starting local Gemma';
+                case 'ready': return 'Local Gemma is ready';
+                case 'error': return 'Local model setup needs attention';
+                default: return 'Preparing local models';
+            }
+        }
+
+        function setupButtonHTML(label) {
+            return `${label} <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>`;
+        }
+
+        function formatBytes(bytes) {
+            if (!bytes) return '0 B';
+            const units = ['B', 'KB', 'MB', 'GB'];
+            let n = bytes, i = 0;
+            while (n >= 1024 && i < units.length - 1) { n /= 1024; i++; }
+            return `${n >= 10 || i === 0 ? n.toFixed(0) : n.toFixed(1)} ${units[i]}`;
         }
 
         // ── Onboarding slides ──
@@ -2805,13 +2886,12 @@
             }
         }
 
-        // ── Setup: save API key ──
+        // ── Setup: verify local LLM ──
         document.getElementById('setup-btn').addEventListener('click', async () => {
-            const key = document.getElementById('api-key-input').value.trim();
-            if (!key) return;
+            const key = document.getElementById('api-key-input').value.trim() || 'local-mlx';
             const btn = document.getElementById('setup-btn');
             btn.disabled = true;
-            btn.textContent = 'Validating...';
+            btn.textContent = 'Checking...';
             try {
                 const check = await api('/api/setup/validate', {
                     method: 'POST',
@@ -2819,9 +2899,9 @@
                     body: JSON.stringify({api_key: key})
                 });
                 if (!check.valid) {
-                    alert(check.error || 'Invalid API key');
+                    alert(check.error || 'Local MLX server is not reachable');
                     btn.disabled = false;
-                    btn.innerHTML = 'Continue <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>';
+                    btn.innerHTML = setupButtonHTML('Continue');
                     return;
                 }
                 await api('/api/setup', {
@@ -2835,7 +2915,7 @@
                 alert('Failed to save key: ' + e.message);
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = 'Continue <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>';
+                btn.innerHTML = setupButtonHTML('Continue');
             }
         });
 
@@ -4213,9 +4293,8 @@
             const input = document.getElementById('settings-api-key');
             const btn = document.getElementById('settings-api-key-btn');
             const msg = document.getElementById('api-key-msg');
-            const key = input.value.trim();
-            if (!key) return;
-            btn.textContent = 'Validating...';
+            const key = input.value.trim() || 'local-mlx';
+            btn.textContent = 'Checking...';
             btn.disabled = true;
             msg.style.display = 'none';
             try {
@@ -4225,7 +4304,7 @@
                     body: JSON.stringify({api_key: key})
                 });
                 if (!v.valid) {
-                    msg.textContent = 'Invalid key: ' + (v.error || 'check and try again');
+                    msg.textContent = v.error || 'Local MLX server is not reachable';
                     msg.style.color = 'var(--danger)';
                     msg.style.display = 'block';
                     return;
@@ -4236,7 +4315,7 @@
                     body: JSON.stringify({api_key: key})
                 });
                 input.value = '';
-                msg.textContent = 'API key updated';
+                msg.textContent = 'Local MLX server is reachable';
                 msg.style.color = 'var(--growth)';
                 msg.style.display = 'block';
             } catch (e) {
@@ -4244,7 +4323,7 @@
                 msg.style.color = 'var(--danger)';
                 msg.style.display = 'block';
             } finally {
-                btn.textContent = 'Update';
+                btn.textContent = 'Check';
                 btn.disabled = false;
             }
         }

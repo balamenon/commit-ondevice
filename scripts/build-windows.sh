@@ -30,10 +30,10 @@ Commit — WhatsApp Commitment Tracker
 Quick Start:
   1. Double-click Commit.exe to start
   2. Open http://localhost:9384 in your browser
-  3. Follow the setup wizard (passcode, API key, WhatsApp QR)
+  3. Follow the setup wizard (passcode, local Gemma check, WhatsApp QR)
 
 Requirements:
-  - A Claude API key from https://console.anthropic.com
+  - A local OpenAI-compatible Gemma/EmbeddingGemma endpoint
   - WhatsApp on your phone (for QR linking)
 
 Data is stored in: %USERPROFILE%\.commit\

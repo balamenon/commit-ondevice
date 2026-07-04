@@ -95,6 +95,43 @@ func (db *DB) migrate() error {
 			is_group  INTEGER NOT NULL DEFAULT 0,
 			created_at INTEGER NOT NULL DEFAULT 0
 		);
+
+		CREATE TABLE IF NOT EXISTS semantic_index (
+			id              TEXT PRIMARY KEY,
+			source_type     TEXT NOT NULL,
+			source_id       TEXT NOT NULL,
+			chat_jid        TEXT NOT NULL DEFAULT '',
+			title           TEXT NOT NULL DEFAULT '',
+			content         TEXT NOT NULL,
+			timestamp       INTEGER NOT NULL DEFAULT 0,
+			embedding_model TEXT NOT NULL,
+			dimensions      INTEGER NOT NULL,
+			embedding       TEXT NOT NULL,
+			updated_at      INTEGER NOT NULL,
+			UNIQUE(source_type, source_id, embedding_model)
+		);
+
+		CREATE INDEX IF NOT EXISTS idx_semantic_source ON semantic_index(source_type, source_id);
+		CREATE INDEX IF NOT EXISTS idx_semantic_chat ON semantic_index(chat_jid, timestamp);
+
+		CREATE TABLE IF NOT EXISTS media_assets (
+			id          TEXT PRIMARY KEY,
+			message_id  TEXT NOT NULL,
+			chat_jid    TEXT NOT NULL DEFAULT '',
+			media_type  TEXT NOT NULL DEFAULT '',
+			mime_type   TEXT NOT NULL DEFAULT '',
+			file_name   TEXT NOT NULL DEFAULT '',
+			path        TEXT NOT NULL,
+			caption     TEXT NOT NULL DEFAULT '',
+			description TEXT NOT NULL DEFAULT '',
+			timestamp   INTEGER NOT NULL DEFAULT 0,
+			created_at  INTEGER NOT NULL,
+			described_at INTEGER,
+			UNIQUE(message_id, path)
+		);
+
+		CREATE INDEX IF NOT EXISTS idx_media_message ON media_assets(message_id);
+		CREATE INDEX IF NOT EXISTS idx_media_pending ON media_assets(described_at) WHERE described_at IS NULL;
 	`)
 	if err != nil {
 		return err
@@ -132,7 +169,46 @@ func (db *DB) migrate() error {
 		db.conn.Exec("ALTER TABLE commitments ADD COLUMN significance TEXT NOT NULL DEFAULT 'medium'")
 	}
 
-	db.setSchemaVersion(5)
+	if version < 6 {
+		db.conn.Exec(`CREATE TABLE IF NOT EXISTS semantic_index (
+			id              TEXT PRIMARY KEY,
+			source_type     TEXT NOT NULL,
+			source_id       TEXT NOT NULL,
+			chat_jid        TEXT NOT NULL DEFAULT '',
+			title           TEXT NOT NULL DEFAULT '',
+			content         TEXT NOT NULL,
+			timestamp       INTEGER NOT NULL DEFAULT 0,
+			embedding_model TEXT NOT NULL,
+			dimensions      INTEGER NOT NULL,
+			embedding       TEXT NOT NULL,
+			updated_at      INTEGER NOT NULL,
+			UNIQUE(source_type, source_id, embedding_model)
+		)`)
+		db.conn.Exec("CREATE INDEX IF NOT EXISTS idx_semantic_source ON semantic_index(source_type, source_id)")
+		db.conn.Exec("CREATE INDEX IF NOT EXISTS idx_semantic_chat ON semantic_index(chat_jid, timestamp)")
+	}
+
+	if version < 7 {
+		db.conn.Exec(`CREATE TABLE IF NOT EXISTS media_assets (
+			id          TEXT PRIMARY KEY,
+			message_id  TEXT NOT NULL,
+			chat_jid    TEXT NOT NULL DEFAULT '',
+			media_type  TEXT NOT NULL DEFAULT '',
+			mime_type   TEXT NOT NULL DEFAULT '',
+			file_name   TEXT NOT NULL DEFAULT '',
+			path        TEXT NOT NULL,
+			caption     TEXT NOT NULL DEFAULT '',
+			description TEXT NOT NULL DEFAULT '',
+			timestamp   INTEGER NOT NULL DEFAULT 0,
+			created_at  INTEGER NOT NULL,
+			described_at INTEGER,
+			UNIQUE(message_id, path)
+		)`)
+		db.conn.Exec("CREATE INDEX IF NOT EXISTS idx_media_message ON media_assets(message_id)")
+		db.conn.Exec("CREATE INDEX IF NOT EXISTS idx_media_pending ON media_assets(described_at) WHERE described_at IS NULL")
+	}
+
+	db.setSchemaVersion(7)
 	return nil
 }
 
@@ -192,7 +268,7 @@ func (db *DB) SetPasscode(passcode string) error {
 	// Re-encrypt existing data with the new passcode-derived key
 	if existingAPIKey != "" {
 		if err := db.SetAPIKey(existingAPIKey); err != nil {
-			return fmt.Errorf("re-encrypt api key: %w", err)
+			return fmt.Errorf("re-encrypt local credential: %w", err)
 		}
 	}
 	return nil
@@ -305,11 +381,16 @@ func (db *DB) decrypt(stored string) (string, error) {
 
 // Model
 
-const DefaultModel = "claude-sonnet-4-6-20250620"
-const FallbackModel = "claude-haiku-4-5-20251001"
+const DefaultModel = "mlx-community/gemma-4-12B-it-qat-4bit"
+const FallbackModel = DefaultModel
+const DefaultDraftModel = "mlx-community/gemma-4-12B-it-qat-assistant-nvfp4"
+const DefaultEmbeddingModel = "mlx-community/embeddinggemma-300m-4bit"
 
 func (db *DB) GetModel() string {
-	m := db.GetSetting("claude_model")
+	m := db.GetSetting("llm_model")
+	if m == "" {
+		m = db.GetSetting("claude_model")
+	}
 	if m == "" {
 		return DefaultModel
 	}
@@ -317,7 +398,19 @@ func (db *DB) GetModel() string {
 }
 
 func (db *DB) SetModel(model string) error {
-	return db.SetSetting("claude_model", model)
+	return db.SetSetting("llm_model", model)
+}
+
+func (db *DB) GetEmbeddingModel() string {
+	m := db.GetSetting("embedding_model")
+	if m == "" {
+		return DefaultEmbeddingModel
+	}
+	return m
+}
+
+func (db *DB) SetEmbeddingModel(model string) error {
+	return db.SetSetting("embedding_model", model)
 }
 
 // My Style

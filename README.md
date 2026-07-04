@@ -6,14 +6,15 @@ When something goes quiet, it surfaces it for follow-up.
 
 ## How it works
 
-You scan a QR code to link your WhatsApp account, same as WhatsApp Web. Commit runs on your machine. Every 10 seconds it reads new messages, sends them to the Claude API for analysis, and logs any commitments it finds.
+You scan a QR code to link your WhatsApp account, same as WhatsApp Web. Commit runs on your machine. Every 10 seconds it reads new messages, analyzes them with a local MLX Gemma 4 12B model, indexes them with EmbeddingGemma, and logs any commitments it finds.
 
 The dashboard shows everything grouped by person: what you owe, what they owe, how long it's been. You can reply, set reminders, mark things done, or dismiss them.
 
 ## Features
 
 - **Dashboard** — all open commitments in one view, grouped by chat. Filter by "I owe", "They owe", or "Resolved". Search across everything.
-- **Auto-extraction** — Claude reads incoming messages every 10 seconds, identifies promises and obligations, and logs them with the original quote, person, and direction.
+- **Auto-extraction** — Gemma 4 12B reads incoming messages every 10 seconds, identifies promises and obligations, and logs them with the original quote, person, and direction.
+- **Semantic search** — EmbeddingGemma indexes WhatsApp text locally so `@find` can use meaning-based retrieval in addition to keyword search.
 - **Auto-resolution** — when a commitment is fulfilled in conversation (a file shared, a task confirmed, someone says "done"), Commit marks it resolved automatically.
 - **Follow-ups** — surfaces things others owe you that have gone quiet. Drafts a polite nudge message and lets you send it directly from the dashboard.
 - **Reminders** — set a reminder on any commitment. When it's due, Commit sends you a WhatsApp message to your own account so it shows up in your chat list.
@@ -23,13 +24,13 @@ The dashboard shows everything grouped by person: what you owe, what they owe, h
 - **History sync** — when you link a new device, Commit backfills your recent WhatsApp message history so commitments appear immediately.
 - **Dark and light theme** — toggle from the dashboard toolbar. Respects your preference across sessions.
 - **Mobile web** — the dashboard is fully responsive. Access it from your phone's browser at the same local address.
-- **Passcode protection** — the web interface is secured with a passcode. Your Claude API key is encrypted with AES-GCM on disk.
+- **Passcode protection** — the web interface is secured with a passcode. Local model settings are stored on disk.
 
 ## System requirements
 
-- **macOS** 12 Monterey or later (Apple Silicon or Intel)
-- **Windows** 10 or later (64-bit)
-- A [Claude API key](https://console.anthropic.com/) (Anthropic account required)
+- **macOS** 12 Monterey or later on Apple Silicon
+- MLX model serving with an OpenAI-compatible `/v1/chat/completions` endpoint
+- An OpenAI-compatible `/v1/embeddings` endpoint backed by EmbeddingGemma
 - WhatsApp account with multi-device support
 
 ## Install
@@ -48,7 +49,7 @@ Download `Commit-x.x.x-windows-amd64.zip` from Releases, extract it, and run `Co
 
 ### From source
 
-Requires Go 1.22+ and a [Claude API key](https://console.anthropic.com/).
+Requires Go 1.22+ and local MLX model servers.
 
 ```bash
 git clone https://github.com/mitensampat/commit.git
@@ -57,12 +58,39 @@ go build -o commit .
 ./commit
 ```
 
+### Local MLX models
+
+Commit defaults to:
+
+- Generation: `mlx-community/gemma-4-12B-it-qat-4bit`
+- MTP draft model: `mlx-community/gemma-4-12B-it-qat-assistant-nvfp4`
+- Embeddings: `mlx-community/embeddinggemma-300m-4bit`
+- Endpoint: `http://127.0.0.1:8080/v1`
+
+On first run, Commit checks the standard Hugging Face cache and downloads these repos with `hf download` or `huggingface-cli download` if they are missing. Install the Hugging Face Hub CLI with `pipx` first:
+
+```bash
+brew install pipx
+pipx install "huggingface-hub[hf_xet]"
+```
+
+Commit shows dependency/model download status in the setup screen, repairs the local Gemma runtime when needed, then starts `mlx_vlm.server` automatically with the MTP draft model when the cache is ready. The bundled `scripts/start-mlx-gemma.sh` remains available for debugging, but normal users should not need a terminal.
+
+Environment overrides:
+
+```bash
+COMMIT_LLM_BASE_URL=http://127.0.0.1:8080/v1
+COMMIT_EMBEDDING_BASE_URL=http://127.0.0.1:8080/v1
+COMMIT_LLM_DRAFT_MODEL=mlx-community/gemma-4-12B-it-qat-assistant-nvfp4
+COMMIT_LLM_NUM_DRAFT_TOKENS=3
+```
+
 ## Setup
 
 Open [http://commit:9384](http://commit:9384) in your browser (or `localhost:9384`). The setup wizard will walk you through:
 
-1. **Set a passcode** — protects the web interface and encrypts your API key
-2. **Enter your Claude API key** — stored locally, encrypted with AES-GCM
+1. **Set a passcode** — protects the web interface
+2. **Check Local Gemma** — validates the local MLX generation endpoint
 3. **Scan the QR code** — links Commit to your WhatsApp account
 
 Once connected, Commit scans incoming messages every 10 seconds and populates the dashboard.
@@ -85,7 +113,7 @@ Message yourself on WhatsApp to interact with Commit:
 main.go              — entry point, wires up components
 server/              — HTTP server, API endpoints, auth
 server/static/       — embedded web UI (single-page app)
-extraction/          — Claude API client, commitment extraction prompt
+extraction/          — local MLX clients, semantic indexing, commitment extraction prompt
 store/               — SQLite database, message and commitment storage
 whatsapp/            — WhatsApp client (whatsmeow), bot command handler
 landing/             — marketing landing page
@@ -117,15 +145,15 @@ NOTARY_PROFILE="commit-notary" \
 
 - All data stays on your machine in `~/.commit/` — messages, commitments, settings, and WhatsApp session files
 - Messages are decrypted locally by the WhatsApp multi-device protocol
-- Message content (including sender names and timestamps) is sent to the Claude API for commitment extraction — Commit does not filter or redact messages before sending
-- Anthropic does not train on API inputs; their [data retention policy](https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching#data-retention-and-privacy) governs what happens on their side
+- Message content, sender names, timestamps, embeddings, commitments, and search context stay local when your MLX endpoints are local
 - No cloud storage, no telemetry, no tracking by Commit
 - Your WhatsApp linked device session persists until you unlink it from your phone (Settings → Linked Devices) — even if Commit is not running, messages will queue for the next session
 - To fully remove Commit: unlink the device from WhatsApp, delete the app, and delete `~/.commit/`
 
 ## Third-party services
 
-- **Claude API** (Anthropic) — commitment extraction from message content
+- **MLX / Gemma 4 12B** — local commitment extraction and nudge generation
+- **EmbeddingGemma** — local semantic indexing for WhatsApp search
 
 ## License
 

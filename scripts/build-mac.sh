@@ -101,6 +101,11 @@ PLIST
 if [[ -f "config/AppIcon.icns" ]]; then
     cp "config/AppIcon.icns" "${APP_BUNDLE}/Contents/Resources/"
 fi
+if [[ -f "scripts/start-mlx-gemma.sh" ]]; then
+    mkdir -p "${APP_BUNDLE}/Contents/Resources/scripts"
+    cp "scripts/start-mlx-gemma.sh" "${APP_BUNDLE}/Contents/Resources/scripts/"
+    chmod +x "${APP_BUNDLE}/Contents/Resources/scripts/start-mlx-gemma.sh"
+fi
 
 echo "  Done"
 echo ""

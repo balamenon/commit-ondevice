@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/msfoundry/commit/store"
@@ -31,7 +32,7 @@ func (e *Extractor) FindAnswer(ctx context.Context, query string) (string, error
 func (e *Extractor) Find(ctx context.Context, query string) (*FindResult, error) {
 	apiKey := e.db.GetAPIKey()
 	if apiKey == "" {
-		return nil, fmt.Errorf("API key not configured")
+		return nil, fmt.Errorf("local LLM not configured")
 	}
 
 	keywords := extractKeywords(query)
@@ -96,6 +97,19 @@ func (e *Extractor) Find(ctx context.Context, query string) (*FindResult, error)
 		}
 	}
 
+	if semanticMsgs, err := e.searchSemanticMessages(ctx, query, 40); err == nil {
+		for _, m := range semanticMsgs {
+			if !seen[m.ID] {
+				seen[m.ID] = true
+				msgs = append(msgs, m)
+			}
+		}
+	} else {
+		// Semantic search is best-effort so @find still works if the local
+		// embedding server is not running yet.
+		log.Printf("semantic search skipped: %v", err)
+	}
+
 	// Step 3: Conversation threading — for top hits, pull surrounding context
 	var threaded []*store.Message
 	threadSeen := map[string]bool{}
@@ -136,9 +150,9 @@ func (e *Extractor) Find(ctx context.Context, query string) (*FindResult, error)
 
 	prompt := buildFindPrompt(query, threaded, rankedCommitments)
 	model := e.db.GetModel()
-	response, err := callClaude(ctx, apiKey, model, prompt)
+	response, err := callLocalLLM(ctx, apiKey, model, prompt)
 	if err != nil {
-		return nil, fmt.Errorf("claude: %w", err)
+		return nil, fmt.Errorf("local llm: %w", err)
 	}
 
 	jsonStr := extractJSON(response)

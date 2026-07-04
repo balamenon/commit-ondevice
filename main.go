@@ -15,6 +15,7 @@ import (
 	"syscall"
 
 	"github.com/msfoundry/commit/extraction"
+	"github.com/msfoundry/commit/localmodel"
 	"github.com/msfoundry/commit/server"
 	"github.com/msfoundry/commit/store"
 	"github.com/msfoundry/commit/whatsapp"
@@ -46,6 +47,8 @@ func main() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+	modelManager := localmodel.NewManager()
+	modelManager.Start(ctx)
 
 	extractor := extraction.New(db, nil)
 
@@ -62,7 +65,7 @@ func main() {
 	wa := whatsapp.New(db, dataDir, extractor, ctx)
 	wa.SetFindHandler(extractor)
 	extractor.SetNotifier(wa)
-	srv := server.New(db, wa, extractor, defaultPort)
+	srv := server.New(db, wa, extractor, defaultPort, modelManager)
 
 	go func() {
 		sigCh := make(chan os.Signal, 1)
