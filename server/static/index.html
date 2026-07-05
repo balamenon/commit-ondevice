@@ -831,12 +831,31 @@
         .today-card { border-left: 3px solid transparent; }
         .today-card.deadline { border-left-color: var(--warning); }
         .today-card.stale { border-left-color: var(--info); }
+        .today-card .commitment-title { font-size: 14px; }
+        .today-meta {
+            display: flex;
+            align-items: baseline;
+            gap: 7px;
+            margin-top: 4px;
+            min-width: 0;
+        }
+        .today-person {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--ink-secondary);
+            white-space: nowrap;
+        }
+        .today-meta-sep { font-size: 12px; color: var(--ink-faint); }
         .today-reason {
             font-size: 11px;
             padding: 1px 8px;
             border-radius: 10px;
             font-weight: 500;
             white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
+            min-width: 0;
         }
         .today-reason.deadline { background: var(--warning-light); color: var(--warning); }
         .today-reason.stale { background: var(--info-light); color: var(--info); }
@@ -1766,8 +1785,12 @@
         .followup-filter-bar {
             display: flex;
             gap: 6px;
-            margin-bottom: 16px;
+            padding: 14px 0 4px;
+            margin-bottom: 12px;
+            overflow-x: auto;
+            scrollbar-width: none;
         }
+        .followup-filter-bar::-webkit-scrollbar { display: none; }
 
         .followup-filter {
             font-family: var(--font-body);
@@ -3226,8 +3249,8 @@
                 <div class="commitment-top">
                     <div class="commitment-body">
                         <div class="commitment-title">${esc(item.title)}</div>
-                        <div class="commitment-meta">
-                            ${person ? `<span style="font-weight:500;color:var(--ink-secondary);">${esc(person)}</span>` : ''}
+                        <div class="today-meta">
+                            ${person ? `<span class="today-person">${esc(person)}</span><span class="today-meta-sep">&middot;</span>` : ''}
                             <span class="today-reason ${urgency}">${esc(reason)}</span>
                         </div>
                     </div>
@@ -3800,7 +3823,7 @@
                     if (resolvedCount > 0) parts.push(resolvedCount + ' closed');
                     metaText += parts.join(', ');
                 } else {
-                    metaText += filtered.length + ' open';
+                    metaText += filtered.length + (currentTab === 'resolved' ? ' resolved' : ' open');
                 }
 
                 html += `<div class="commitment-group" data-person="${escAttr(group.name.toLowerCase())}">

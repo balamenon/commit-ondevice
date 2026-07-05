@@ -77,7 +77,7 @@ func RankToday(cands []*TodayCandidate, now time.Time, max int) []*TodayItem {
 				score += 90
 				urgency = "deadline"
 				if reason == "" {
-					reason = "due " + strings.ToLower(strings.TrimSpace(c.DueHint))
+					reason = "due " + shortHint(c.DueHint)
 				}
 			} else {
 				// A stated deadline gets more pressing as the promise ages.
@@ -85,10 +85,10 @@ func RankToday(cands []*TodayCandidate, now time.Time, max int) []*TodayItem {
 				if ageDays >= 3 {
 					urgency = "deadline"
 					if reason == "" {
-						reason = "promised " + humanDays(ageDays) + " ago, due " + strings.ToLower(strings.TrimSpace(c.DueHint))
+						reason = "promised " + humanDays(ageDays) + " ago, due " + shortHint(c.DueHint)
 					}
 				} else if reason == "" {
-					reason = "due " + strings.ToLower(strings.TrimSpace(c.DueHint))
+					reason = "due " + shortHint(c.DueHint)
 				}
 			}
 		}
@@ -192,6 +192,22 @@ func tokenSet(s string) map[string]bool {
 		}
 	}
 	return out
+}
+
+// shortHint trims a due hint to a badge-sized phrase — extraction sometimes
+// captures a whole clause ("every tuesday for 6 weeks starting from this
+// message") where the first few words carry the signal.
+func shortHint(hint string) string {
+	h := strings.ToLower(strings.TrimSpace(hint))
+	const maxLen = 24
+	if len(h) <= maxLen {
+		return h
+	}
+	cut := strings.LastIndex(h[:maxLen], " ")
+	if cut < 8 {
+		cut = maxLen
+	}
+	return h[:cut] + "…"
 }
 
 func minF(a, b float64) float64 {
