@@ -132,7 +132,13 @@ func (db *DB) migrate() error {
 		db.conn.Exec("ALTER TABLE commitments ADD COLUMN significance TEXT NOT NULL DEFAULT 'medium'")
 	}
 
-	db.setSchemaVersion(5)
+	if version < 6 {
+		// Distinguishes a silent snooze (resurfaces quietly when due) from a
+		// user-set reminder (pings the self-chat when due).
+		db.conn.Exec("ALTER TABLE commitments ADD COLUMN snoozed_flag INTEGER NOT NULL DEFAULT 0")
+	}
+
+	db.setSchemaVersion(6)
 	return nil
 }
 

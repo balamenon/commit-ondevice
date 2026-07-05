@@ -251,7 +251,7 @@ func (c *Client) cmdDisambiguate(letter string) string {
 
 	idx := int(letter[0] - 'a')
 	if idx < 0 || idx >= len(choices) {
-		return fmt.Sprintf("Invalid choice. Please pick a-" + string(rune('a'+len(choices)-1)) + ".")
+		return "Invalid choice. Please pick a-" + string(rune('a'+len(choices)-1)) + "."
 	}
 
 	person := choices[idx]

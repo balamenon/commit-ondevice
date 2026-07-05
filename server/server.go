@@ -148,6 +148,8 @@ func (s *Server) registerRoutes() {
 	s.mux.HandleFunc("/api/debug", s.requireAuth(s.handleDebug))
 	s.mux.HandleFunc("/api/find", s.requireAuth(s.handleFind))
 	s.mux.HandleFunc("/api/commitments/context", s.requireAuth(s.handleCommitmentContext))
+	s.mux.HandleFunc("/api/today", s.requireAuth(s.handleToday))
+	s.mux.HandleFunc("/api/commitments/snooze", s.requireAuth(s.handleSnooze))
 	s.mux.HandleFunc("/api/resolution-sweep", s.handleResolutionSweep)
 	s.mux.HandleFunc("/api/logout", s.requireAuth(s.handleLogout))
 }
