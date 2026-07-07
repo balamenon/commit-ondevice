@@ -32,13 +32,23 @@ type Status struct {
 	Error         string        `json:"error"`
 	ServerRunning bool          `json:"server_running"`
 	ServerPID     int           `json:"server_pid"`
+	CurrentModel  string        `json:"current_model"`
+	CurrentLabel  string        `json:"current_label"`
 	Models        []ModelStatus `json:"models"`
+}
+
+type ModelOption struct {
+	ID          string `json:"id"`
+	Label       string `json:"label"`
+	Description string `json:"description"`
 }
 
 type Manager struct {
 	mu           sync.RWMutex
 	once         sync.Once
 	db           *store.DB
+	cancel       context.CancelFunc
+	runDone      chan struct{}
 	status       Status
 	models       []ModelStatus
 	serverCmd    *exec.Cmd
@@ -46,22 +56,22 @@ type Manager struct {
 	lastOutput   string
 }
 
+func ModelOptions() []ModelOption {
+	return []ModelOption{
+		{ID: store.Gemma4E2BModel, Label: "Gemma 4 E2B", Description: "Efficient mode for the lowest steady-state footprint"},
+		{ID: store.Gemma4E4BModel, Label: "Gemma 4 E4B", Description: "Balanced mode with more capacity and still much smaller than 12B"},
+		{ID: store.Gemma412BModel, Label: "Gemma 4 12B", Description: "Largest local mode; uses the MTP draft model when no draft override is set"},
+	}
+}
+
 func NewManager(db *store.DB) *Manager {
 	model := envOrDefault("COMMIT_LLM_MODEL", defaultModel(db))
-	draftModel := envOrDefault("COMMIT_LLM_DRAFT_MODEL", store.DefaultDraftModel)
-	embeddingModel := envOrDefault("COMMIT_EMBEDDING_MODEL", store.DefaultEmbeddingModel)
-	models := []ModelStatus{
-		modelStatus(model),
-	}
-	if draftModel != "" && draftModel != "none" {
-		models = append(models, modelStatus(draftModel))
-	}
-	models = append(models, modelStatus(embeddingModel))
-	m := &Manager{db: db, models: models}
+	m := &Manager{db: db, models: modelsFor(model)}
 	m.setStatus(func(s *Status) {
 		s.Phase = "idle"
 		s.Detail = "Preparing local models"
-		s.Models = m.snapshotModels()
+		s.CurrentModel = model
+		s.CurrentLabel = modelLabel(model)
 	})
 	return m
 }
@@ -126,6 +136,23 @@ func estimatedModelBytes(id string) int64 {
 	return 0
 }
 
+func modelsFor(model string) []ModelStatus {
+	draftModel := selectedDraftModel(model)
+	embeddingModel := envOrDefault("COMMIT_EMBEDDING_MODEL", store.DefaultEmbeddingModel)
+	models := []ModelStatus{modelStatus(model)}
+	if draftModel != "" && draftModel != "none" {
+		models = append(models, modelStatus(draftModel))
+	}
+	return append(models, modelStatus(embeddingModel))
+}
+
+func selectedDraftModel(model string) string {
+	if draftModel := os.Getenv("COMMIT_LLM_DRAFT_MODEL"); draftModel != "" {
+		return draftModel
+	}
+	return store.DefaultDraftForModel(model)
+}
+
 func mb(n int64) int64 {
 	return n * 1000 * 1000
 }
@@ -136,8 +163,85 @@ func gb(n int64) int64 {
 
 func (m *Manager) Start(ctx context.Context) {
 	m.once.Do(func() {
-		go m.run(ctx)
+		m.startRun(ctx)
 	})
+}
+
+func (m *Manager) SwitchModel(ctx context.Context, model string) error {
+	model = strings.TrimSpace(model)
+	if model == "" {
+		return fmt.Errorf("model is required")
+	}
+	if os.Getenv("COMMIT_LLM_MODEL") != "" {
+		return fmt.Errorf("model is fixed by COMMIT_LLM_MODEL")
+	}
+	if m.db != nil {
+		if err := m.db.SetModel(model); err != nil {
+			return err
+		}
+	}
+	m.Stop()
+	m.mu.Lock()
+	m.models = modelsFor(model)
+	m.status = Status{
+		Phase:        "idle",
+		Detail:       "Preparing local models",
+		CurrentModel: model,
+		CurrentLabel: modelLabel(model),
+	}
+	m.status.Models = m.snapshotModelsLocked()
+	m.mu.Unlock()
+	m.startRun(ctx)
+	return nil
+}
+
+func (m *Manager) Stop() {
+	m.mu.Lock()
+	cancel := m.cancel
+	m.cancel = nil
+	runDone := m.runDone
+	m.runDone = nil
+	cmd := m.serverCmd
+	m.serverCmd = nil
+	m.serverExited = true
+	m.status.ServerRunning = false
+	m.status.ServerPID = 0
+	m.mu.Unlock()
+
+	if cancel != nil {
+		cancel()
+	}
+	if runDone != nil {
+		select {
+		case <-runDone:
+		case <-time.After(5 * time.Second):
+		}
+	}
+	if cmd != nil && cmd.Process != nil {
+		go func() {
+			time.Sleep(2 * time.Second)
+			_ = cmd.Process.Kill()
+		}()
+	}
+	m.setPhase("stopped", "Local model server is stopped", "")
+}
+
+func (m *Manager) startRun(ctx context.Context) {
+	runCtx, cancel := context.WithCancel(ctx)
+	m.mu.Lock()
+	if m.cancel != nil {
+		m.cancel()
+	}
+	runDone := make(chan struct{})
+	m.cancel = cancel
+	m.runDone = runDone
+	m.status.Error = ""
+	m.status.Ready = false
+	m.mu.Unlock()
+	go func() {
+		defer close(runDone)
+		m.run(runCtx)
+	}()
 }
 
 func (m *Manager) Status() Status {
@@ -151,6 +255,8 @@ func (m *Manager) Status() Status {
 	m.status.ServerRunning = m.serverRunningLocked()
 	if m.serverCmd != nil && m.serverCmd.Process != nil {
 		m.status.ServerPID = m.serverCmd.Process.Pid
+	} else {
+		m.status.ServerPID = 0
 	}
 	return m.status
 }
@@ -158,6 +264,10 @@ func (m *Manager) Status() Status {
 func (m *Manager) run(ctx context.Context) {
 	m.setPhase("installing", "Checking local AI runtime", "")
 	if err := m.ensureRuntime(ctx); err != nil {
+		if ctx.Err() != nil {
+			m.setPhase("stopped", "Local model server is stopped", "")
+			return
+		}
 		m.setPhase("error", "Local AI runtime setup failed", err.Error())
 		return
 	}
@@ -165,6 +275,10 @@ func (m *Manager) run(ctx context.Context) {
 	m.setPhase("checking", "Checking local model cache", "")
 	downloader, argsPrefix, err := findHuggingFaceDownloader()
 	if err != nil {
+		if ctx.Err() != nil {
+			m.setPhase("stopped", "Local model server is stopped", "")
+			return
+		}
 		m.setPhase("error", "Hugging Face downloader is not installed", err.Error())
 		return
 	}
@@ -179,6 +293,10 @@ func (m *Manager) run(ctx context.Context) {
 			continue
 		}
 		if err := m.waitForExternalDownload(ctx, i); err != nil {
+			if ctx.Err() != nil {
+				m.setPhase("stopped", "Local model server is stopped", "")
+				return
+			}
 			m.setPhase("error", "Model download was interrupted", err.Error())
 			return
 		}
@@ -187,6 +305,10 @@ func (m *Manager) run(ctx context.Context) {
 			continue
 		}
 		if err := m.downloadModel(ctx, downloader, argsPrefix, i); err != nil {
+			if ctx.Err() != nil {
+				m.setPhase("stopped", "Local model server is stopped", "")
+				return
+			}
 			m.setPhase("error", "Model download failed", err.Error())
 			return
 		}
@@ -194,6 +316,10 @@ func (m *Manager) run(ctx context.Context) {
 
 	m.setPhase("starting_server", "Starting local Gemma server", "")
 	if err := m.startServer(ctx); err != nil {
+		if ctx.Err() != nil {
+			m.setPhase("stopped", "Local model server is stopped", "")
+			return
+		}
 		m.setPhase("error", "Local Gemma server failed to start", err.Error())
 		return
 	}
@@ -397,8 +523,9 @@ func (m *Manager) startServer(ctx context.Context) error {
 		return fmt.Errorf("local MLX runtime is not installed")
 	}
 
-	args := []string{"--model", envOrDefault("COMMIT_LLM_MODEL", defaultModel(m.db))}
-	if draftModel := envOrDefault("COMMIT_LLM_DRAFT_MODEL", store.DefaultDraftModel); draftModel != "" && draftModel != "none" {
+	model := envOrDefault("COMMIT_LLM_MODEL", defaultModel(m.db))
+	args := []string{"--model", model}
+	if draftModel := selectedDraftModel(model); draftModel != "" && draftModel != "none" {
 		args = append(args, "--draft-model", draftModel, "--draft-kind", envOrDefault("COMMIT_LLM_DRAFT_KIND", "mtp"))
 	}
 	args = append(args, "--host", "127.0.0.1", "--port", "8080")
@@ -413,6 +540,7 @@ func (m *Manager) startServer(ctx context.Context) error {
 	m.mu.Lock()
 	m.serverCmd = cmd
 	m.serverExited = false
+	m.status.ServerPID = cmd.Process.Pid
 	m.mu.Unlock()
 
 	go m.logPipe("mlx-vlm", stdout)
@@ -517,6 +645,12 @@ func (m *Manager) serverRunningLocked() bool {
 }
 
 func (m *Manager) snapshotModels() []ModelStatus {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.snapshotModelsLocked()
+}
+
+func (m *Manager) snapshotModelsLocked() []ModelStatus {
 	out := append([]ModelStatus(nil), m.models...)
 	for i := range out {
 		out[i].Cached = isModelCached(out[i].ID)

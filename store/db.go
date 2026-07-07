@@ -442,10 +442,22 @@ func (db *DB) decrypt(stored string) (string, error) {
 
 // Model
 
-const DefaultModel = "mlx-community/gemma-4-e2b-it-4bit"
+const Gemma4E2BModel = "mlx-community/gemma-4-e2b-it-4bit"
+const Gemma4E4BModel = "mlx-community/gemma-4-e4b-it-4bit"
+const Gemma412BModel = "mlx-community/gemma-4-12B-it-qat-4bit"
+const Gemma412BDraftModel = "mlx-community/gemma-4-12B-it-qat-assistant-nvfp4"
+
+const DefaultModel = Gemma4E2BModel
 const FallbackModel = DefaultModel
 const DefaultDraftModel = "none"
 const DefaultEmbeddingModel = "mlx-community/embeddinggemma-300m-4bit"
+
+func DefaultDraftForModel(model string) string {
+	if model == Gemma412BModel {
+		return Gemma412BDraftModel
+	}
+	return DefaultDraftModel
+}
 
 func (db *DB) GetModel() string {
 	m := db.GetSetting("llm_model")

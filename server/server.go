@@ -427,7 +427,10 @@ func (s *Server) validateKeyWithModel(ctx context.Context, apiKey, model string)
 
 func (s *Server) handleModel(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
-		writeJSON(w, map[string]string{"model": s.db.GetModel()})
+		writeJSON(w, map[string]any{
+			"model":   s.db.GetModel(),
+			"options": localmodel.ModelOptions(),
+		})
 		return
 	}
 	if r.Method != "POST" {
@@ -441,7 +444,12 @@ func (s *Server) handleModel(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "model required", 400)
 		return
 	}
-	if err := s.db.SetModel(body.Model); err != nil {
+	if s.modelRuntime != nil {
+		if err := s.modelRuntime.SwitchModel(context.Background(), body.Model); err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+	} else if err := s.db.SetModel(body.Model); err != nil {
 		http.Error(w, "failed to save", 500)
 		return
 	}

@@ -107,7 +107,7 @@ func callLocalChat(ctx context.Context, model, prompt string, imageDataURL any, 
 	}
 	draftModel := os.Getenv("COMMIT_LLM_DRAFT_MODEL")
 	if draftModel == "" {
-		draftModel = store.DefaultDraftModel
+		draftModel = store.DefaultDraftForModel(model)
 	}
 	if draftModel != "none" {
 		reqBody.DraftModel = draftModel

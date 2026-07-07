@@ -16,6 +16,7 @@ import (
 
 	"github.com/msfoundry/commit/extraction"
 	"github.com/msfoundry/commit/localmodel"
+	"github.com/msfoundry/commit/menubar"
 	"github.com/msfoundry/commit/server"
 	"github.com/msfoundry/commit/store"
 	"github.com/msfoundry/commit/whatsapp"
@@ -49,6 +50,7 @@ func main() {
 	defer cancel()
 	modelManager := localmodel.NewManager(db)
 	modelManager.Start(ctx)
+	defer modelManager.Stop()
 
 	extractor := extraction.New(db, nil)
 
@@ -87,15 +89,33 @@ func main() {
 		log.Fatalf("failed to listen on %s: %v", addr, err)
 	}
 
+	dashboardURL := fmt.Sprintf("http://localhost:%d", defaultPort)
 	if hasHostsEntry {
-		log.Printf("Commit running at http://commit:%d", defaultPort)
-		openBrowser(fmt.Sprintf("http://commit:%d", defaultPort))
-	} else {
-		log.Printf("Commit running at http://localhost:%d", defaultPort)
-		openBrowser(fmt.Sprintf("http://localhost:%d", defaultPort))
+		dashboardURL = fmt.Sprintf("http://commit:%d", defaultPort)
+	}
+	log.Printf("Commit running at %s", dashboardURL)
+	openBrowser(dashboardURL)
+
+	serverErr := make(chan error, 1)
+	go func() {
+		serverErr <- srv.Serve(ctx, ln)
+	}()
+
+	if menubar.Enabled() {
+		go func() {
+			if err := <-serverErr; err != nil {
+				log.Printf("server error: %v", err)
+			}
+			cancel()
+			menubar.Quit()
+		}()
+		menubar.Run(ctx, cancel, dashboardURL, db, modelManager)
+		modelManager.Stop()
+		cancel()
+		return
 	}
 
-	if err := srv.Serve(ctx, ln); err != nil {
+	if err := <-serverErr; err != nil {
 		log.Fatalf("server error: %v", err)
 	}
 }
