@@ -2722,8 +2722,6 @@
                 <div class="settings-row">
                     <span class="settings-row-label">Local generation model</span>
                     <select id="settings-model" onchange="updateModel()" style="font-size: 13px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface-sunken); color: var(--ink); font-family: inherit; cursor: pointer;">
-                        <option value="mlx-community/gemma-4-e2b-it-4bit">Gemma 4 E2B MLX 4-bit</option>
-                        <option value="mlx-community/gemma-4-e4b-it-4bit">Gemma 4 E4B MLX 4-bit</option>
                         <option value="mlx-community/gemma-4-12B-it-qat-4bit">Gemma 4 12B MLX QAT 4-bit</option>
                     </select>
                 </div>
@@ -4589,6 +4587,9 @@
             try {
                 const d = await api('/api/model');
                 const sel = document.getElementById('settings-model');
+                if (sel && Array.isArray(d.options)) {
+                    sel.innerHTML = d.options.map(opt => `<option value="${esc(opt.id)}">${esc(opt.label)}</option>`).join('');
+                }
                 if (sel && d.model) sel.value = d.model;
             } catch {}
         }

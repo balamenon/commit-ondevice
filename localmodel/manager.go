@@ -65,9 +65,9 @@ type Manager struct {
 
 func ModelOptions() []ModelOption {
 	return []ModelOption{
-		{ID: store.Gemma4E2BModel, Label: "Gemma 4 E2B", Description: "Efficient mode for the lowest steady-state footprint"},
-		{ID: store.Gemma4E4BModel, Label: "Gemma 4 E4B", Description: "Balanced mode with more capacity and still much smaller than 12B"},
 		{ID: store.Gemma412BModel, Label: "Gemma 4 12B", Description: "Largest local mode; uses the MTP draft model when no draft override is set"},
+		{ID: store.Qwen3VL2BModel, Label: "Qwen3-VL 2B", Description: "Smaller Qwen VLM option for lower memory use"},
+		{ID: store.SmolVLM256MModel, Label: "SmolVLM 256M", Description: "Tiny VLM option for the lowest footprint"},
 	}
 }
 
@@ -113,6 +113,10 @@ func modelLabel(id string) string {
 		return "Gemma 3n E2B"
 	case strings.Contains(lower, "gemma-3n") && strings.Contains(lower, "e4b"):
 		return "Gemma 3n E4B"
+	case strings.Contains(lower, "qwen3-vl") && strings.Contains(lower, "2b"):
+		return "Qwen3-VL 2B"
+	case strings.Contains(lower, "smolvlm") && strings.Contains(lower, "256m"):
+		return "SmolVLM 256M"
 	case strings.Contains(lower, "12b"):
 		return "Gemma 4 12B"
 	}
@@ -137,6 +141,10 @@ func estimatedModelBytes(id string) int64 {
 		return mb(4000)
 	case strings.Contains(lower, "gemma-3n") && strings.Contains(lower, "e4b"):
 		return mb(5820)
+	case strings.Contains(lower, "qwen3-vl") && strings.Contains(lower, "2b"):
+		return mb(1500)
+	case strings.Contains(lower, "smolvlm") && strings.Contains(lower, "256m"):
+		return mb(300)
 	case strings.Contains(lower, "12b"):
 		return gb(11)
 	}
@@ -178,6 +186,9 @@ func (m *Manager) SwitchModel(ctx context.Context, model string) error {
 	model = strings.TrimSpace(model)
 	if model == "" {
 		return fmt.Errorf("model is required")
+	}
+	if !store.SupportedGenerationModel(model) {
+		return fmt.Errorf("%s is currently disabled because upstream mlx-vlm fails to load its audio-tower weights", modelLabel(model))
 	}
 	if os.Getenv("COMMIT_LLM_MODEL") != "" {
 		return fmt.Errorf("model is fixed by COMMIT_LLM_MODEL")
