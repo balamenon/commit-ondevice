@@ -74,6 +74,32 @@ func onReady(ctx context.Context, requestQuit func(), dashboardURL string, db *s
 	systray.AddSeparator()
 	quitItem := systray.AddMenuItem("Quit Commit", "Stop Commit and unload the local model")
 
+	type menuAction struct {
+		kind  string
+		model string
+	}
+	actions := make(chan menuAction, 8)
+	go func() {
+		for range openItem.ClickedCh {
+			actions <- menuAction{kind: "open"}
+		}
+	}()
+	for id, item := range modelItems {
+		id := id
+		item := item
+		go func() {
+			for range item.ClickedCh {
+				actions <- menuAction{kind: "model", model: id}
+			}
+		}()
+	}
+	go func() {
+		for range quitItem.ClickedCh {
+			actions <- menuAction{kind: "quit"}
+			return
+		}
+	}()
+
 	update := func() {
 		if models == nil {
 			systray.SetTitle("Commit: no model")
@@ -107,39 +133,28 @@ func onReady(ctx context.Context, requestQuit func(), dashboardURL string, db *s
 				return
 			case <-ticker.C:
 				update()
-			case <-openItem.ClickedCh:
-				if err := exec.Command("open", dashboardURL).Start(); err != nil {
-					log.Printf("open dashboard from menubar: %v", err)
-				}
-			case <-quitItem.ClickedCh:
-				requestQuit()
-				return
-			default:
-				if handledModelClick(ctx, models, modelItems) {
+			case action := <-actions:
+				switch action.kind {
+				case "open":
+					if err := exec.Command("open", dashboardURL).Start(); err != nil {
+						log.Printf("open dashboard from menubar: %v", err)
+					}
+				case "model":
+					if models != nil {
+						if err := models.SwitchModel(ctx, action.model); err != nil {
+							log.Printf("switch model from menubar: %v", err)
+						}
+					}
 					update()
-				} else {
-					time.Sleep(100 * time.Millisecond)
+				case "quit":
+					systray.SetTitle("Commit: quitting")
+					statusItem.SetTitle("Status: quitting")
+					requestQuit()
+					return
 				}
 			}
 		}
 	}()
-}
-
-func handledModelClick(ctx context.Context, models *localmodel.Manager, modelItems map[string]*systray.MenuItem) bool {
-	for id, item := range modelItems {
-		select {
-		case <-item.ClickedCh:
-			if models == nil {
-				return true
-			}
-			if err := models.SwitchModel(ctx, id); err != nil {
-				log.Printf("switch model from menubar: %v", err)
-			}
-			return true
-		default:
-		}
-	}
-	return false
 }
 
 func shortStatus(status localmodel.Status) string {
