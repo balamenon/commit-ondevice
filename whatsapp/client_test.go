@@ -45,6 +45,42 @@ func TestIsSelfChatMatchesOwnPhoneOrLID(t *testing.T) {
 	}
 }
 
+func TestIsSelfChatMatchesFromMeSelfLIDWithoutStoreID(t *testing.T) {
+	client := &Client{}
+	lidChat := types.NewJID("81973812961508", types.HiddenUserServer)
+	lidSender := types.JID{User: "81973812961508", Device: 17, Server: types.HiddenUserServer}
+	evt := &events.Message{
+		Info: types.MessageInfo{
+			MessageSource: types.MessageSource{
+				Chat:     lidChat,
+				Sender:   lidSender,
+				IsFromMe: true,
+			},
+		},
+	}
+
+	if !client.isSelfChat(evt) {
+		t.Fatal("expected from-me self LID event to be treated as self-chat")
+	}
+}
+
+func TestIsSelfChatDoesNotTreatOutboundContactAsSelf(t *testing.T) {
+	client := &Client{}
+	evt := &events.Message{
+		Info: types.MessageInfo{
+			MessageSource: types.MessageSource{
+				Chat:     types.NewJID("36034809213160", types.HiddenUserServer),
+				Sender:   types.JID{User: "81973812961508", Device: 17, Server: types.HiddenUserServer},
+				IsFromMe: true,
+			},
+		},
+	}
+
+	if client.isSelfChat(evt) {
+		t.Fatal("expected outbound direct contact message to stay non-self-chat")
+	}
+}
+
 func TestIsSelfChatDoesNotMatchOneToOneContact(t *testing.T) {
 	phone := types.NewJID("12345", types.DefaultUserServer)
 	lid := types.NewJID("99999", types.HiddenUserServer)

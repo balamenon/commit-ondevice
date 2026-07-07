@@ -2,13 +2,18 @@ package localmodel
 
 import (
 	"bufio"
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -222,8 +227,26 @@ func (m *Manager) Stop() {
 			time.Sleep(2 * time.Second)
 			_ = cmd.Process.Kill()
 		}()
+	} else {
+		stopExternalServerOnPort("8080")
 	}
 	m.setPhase("stopped", "Local model server is stopped", "")
+}
+
+func (m *Manager) Restart(ctx context.Context) {
+	model := envOrDefault("COMMIT_LLM_MODEL", defaultModel(m.db))
+	m.Stop()
+	m.mu.Lock()
+	m.models = modelsFor(model)
+	m.status = Status{
+		Phase:        "idle",
+		Detail:       "Preparing local models",
+		CurrentModel: model,
+		CurrentLabel: modelLabel(model),
+	}
+	m.status.Models = m.snapshotModelsLocked()
+	m.mu.Unlock()
+	m.startRun(ctx)
 }
 
 func (m *Manager) startRun(ctx context.Context) {
@@ -516,7 +539,25 @@ func (m *Manager) scanOutput(pipe any) {
 
 func (m *Manager) startServer(ctx context.Context) error {
 	if tcpReachable("127.0.0.1:8080") {
-		return nil
+		model := envOrDefault("COMMIT_LLM_MODEL", defaultModel(m.db))
+		if err := localChatHealthCheck(ctx, model); err == nil {
+			return nil
+		} else {
+			m.rememberOutput(err.Error())
+			m.setPhase("starting_server", "Restarting unresponsive local Gemma server", err.Error())
+			stopExternalServerOnPort("8080")
+			deadline := time.Now().Add(10 * time.Second)
+			for tcpReachable("127.0.0.1:8080") && time.Now().Before(deadline) {
+				select {
+				case <-ctx.Done():
+					return ctx.Err()
+				case <-time.After(250 * time.Millisecond):
+				}
+			}
+			if tcpReachable("127.0.0.1:8080") {
+				return fmt.Errorf("local Gemma server is unhealthy and could not be restarted: %w", err)
+			}
+		}
 	}
 	serverPath := findExecutable("mlx_vlm.server")
 	if serverPath == "" {
@@ -560,9 +601,19 @@ func (m *Manager) startServer(ctx context.Context) error {
 	}()
 
 	deadline := time.Now().Add(10 * time.Minute)
+	var lastHealthErr error
 	for time.Now().Before(deadline) {
 		if tcpReachable("127.0.0.1:8080") {
-			return nil
+			if err := localChatHealthCheck(ctx, model); err == nil {
+				return nil
+			} else {
+				lastHealthErr = err
+				m.rememberOutput(err.Error())
+				m.setStatus(func(s *Status) {
+					s.Detail = "Waiting for local Gemma to finish loading"
+					s.Error = err.Error()
+				})
+			}
 		}
 		select {
 		case <-ctx.Done():
@@ -575,7 +626,83 @@ func (m *Manager) startServer(ctx context.Context) error {
 		case <-time.After(2 * time.Second):
 		}
 	}
+	if lastHealthErr != nil {
+		return fmt.Errorf("timed out waiting for local Gemma health check: %w", lastHealthErr)
+	}
 	return fmt.Errorf("timed out waiting for mlx_vlm.server on 127.0.0.1:8080")
+}
+
+func localChatHealthCheck(ctx context.Context, model string) error {
+	body, err := json.Marshal(map[string]any{
+		"model":       model,
+		"max_tokens":  4,
+		"temperature": 0,
+		"stream":      false,
+		"messages": []map[string]string{
+			{"role": "user", "content": "Reply with ok."},
+		},
+	})
+	if err != nil {
+		return err
+	}
+	reqCtx, cancel := context.WithTimeout(ctx, 20*time.Second)
+	defer cancel()
+	req, err := http.NewRequestWithContext(reqCtx, "POST", "http://127.0.0.1:8080/v1/chat/completions", bytes.NewReader(body))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 1200))
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("local Gemma health check failed with HTTP %d: %s", resp.StatusCode, strings.TrimSpace(string(respBody)))
+	}
+	return nil
+}
+
+func stopExternalServerOnPort(port string) {
+	pids, err := listeningPIDs(port)
+	if err != nil {
+		return
+	}
+	for _, pid := range pids {
+		cmdline, err := exec.Command("ps", "-p", strconv.Itoa(pid), "-o", "command=").Output()
+		if err != nil {
+			continue
+		}
+		command := string(cmdline)
+		if !strings.Contains(command, "mlx_vlm.server") && !strings.Contains(command, "mlx_lm.server") {
+			continue
+		}
+		if proc, err := os.FindProcess(pid); err == nil {
+			log.Printf("stopping stale local MLX server pid %d", pid)
+			_ = proc.Kill()
+		}
+	}
+}
+
+func listeningPIDs(port string) ([]int, error) {
+	out, err := exec.Command("lsof", "-nP", "-t", "-iTCP:"+port, "-sTCP:LISTEN").Output()
+	if err != nil {
+		return nil, err
+	}
+	var pids []int
+	for _, line := range strings.Split(string(out), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		pid, err := strconv.Atoi(line)
+		if err != nil {
+			continue
+		}
+		pids = append(pids, pid)
+	}
+	return pids, nil
 }
 
 func (m *Manager) logPipe(prefix string, pipe any) {

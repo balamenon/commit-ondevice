@@ -397,6 +397,11 @@ func (c *Client) SendWelcomeMessages(ctx context.Context, onStage func(stage str
 
 func (c *Client) isSelfChat(evt *events.Message) bool {
 	chat := normalizeUserJID(evt.Info.Chat)
+	sender := normalizeUserJID(evt.Info.Sender)
+
+	if evt.Info.IsFromMe && sameUserJID(chat, sender) {
+		return true
+	}
 
 	if sameUserJID(chat, c.GetOwnJID()) {
 		return true
@@ -441,6 +446,24 @@ func (c *Client) GetOwnLID() types.JID {
 		return types.JID{}
 	}
 	return lid
+}
+
+func (c *Client) PhoneForLID(lid types.JID) types.JID {
+	lid = normalizeUserJID(lid)
+	if lid.Server != types.HiddenUserServer {
+		return types.JID{}
+	}
+	c.mu.RLock()
+	client := c.wa
+	c.mu.RUnlock()
+	if client == nil || client.Store == nil || client.Store.LIDs == nil {
+		return types.JID{}
+	}
+	pn, err := client.Store.LIDs.GetPNForLID(context.Background(), lid)
+	if err != nil {
+		return types.JID{}
+	}
+	return normalizeUserJID(pn)
 }
 
 func (c *Client) GetOwnJID() types.JID {

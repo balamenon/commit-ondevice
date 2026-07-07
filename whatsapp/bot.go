@@ -140,6 +140,9 @@ func (c *Client) sendBotReply(ctx context.Context, evt *events.Message, text str
 func (c *Client) botReplyTarget(evt *events.Message) types.JID {
 	if c.isSelfChat(evt) {
 		chat := normalizeUserJID(evt.Info.Chat)
+		if pn := c.PhoneForLID(chat); !pn.IsEmpty() {
+			return pn
+		}
 		ownJID := c.GetOwnJID()
 		ownLID := c.GetOwnLID()
 		if sameUserJID(chat, ownJID) || sameUserJID(chat, ownLID) {

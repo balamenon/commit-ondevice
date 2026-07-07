@@ -420,9 +420,48 @@ func (s *Server) validateKeyWithModel(ctx context.Context, apiKey, model string)
 	_, err := extraction.CallLocalLLM(ctx, model, "Reply with ok.", 4)
 	if err != nil {
 		log.Printf("local llm validation failed: %v", err)
-		return false, ""
+		if s.modelRuntime != nil {
+			s.modelRuntime.Restart(ctx)
+			if ok, msg := s.waitForLocalModel(ctx); !ok {
+				if msg != "" {
+					return false, msg
+				}
+				return false, err.Error()
+			}
+			if _, retryErr := extraction.CallLocalLLM(ctx, model, "Reply with ok.", 4); retryErr == nil {
+				return true, model
+			} else {
+				log.Printf("local llm validation retry failed: %v", retryErr)
+				return false, retryErr.Error()
+			}
+		}
+		return false, err.Error()
 	}
 	return true, model
+}
+
+func (s *Server) waitForLocalModel(ctx context.Context) (bool, string) {
+	deadline := time.Now().Add(10 * time.Minute)
+	for {
+		status := s.modelRuntime.Status()
+		if status.Ready {
+			return true, ""
+		}
+		if status.Error != "" {
+			return false, status.Error
+		}
+		if time.Now().After(deadline) {
+			if status.Detail != "" {
+				return false, status.Detail
+			}
+			return false, "timed out waiting for local Gemma"
+		}
+		select {
+		case <-ctx.Done():
+			return false, ctx.Err().Error()
+		case <-time.After(2 * time.Second):
+		}
+	}
 }
 
 func (s *Server) handleModel(w http.ResponseWriter, r *http.Request) {
