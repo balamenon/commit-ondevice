@@ -15,6 +15,7 @@ The dashboard shows everything grouped by person: what you owe, what they owe, h
 - **Dashboard** — all open commitments in one view, grouped by chat. Filter by "I owe", "They owe", or "Resolved". Search across everything.
 - **Auto-extraction** — local Gemma 4 reads incoming messages every 10 seconds, identifies promises and obligations, and logs them with the original quote, person, and direction.
 - **Semantic search** — EmbeddingGemma indexes WhatsApp text locally so `@find` can use meaning-based retrieval in addition to keyword search.
+- **Smaller local models** — this release adds Gemma 4 E2B and Gemma 4 E4B MLX options for lower battery and memory use, alongside the original 12B path.
 - **Auto-resolution** — when a commitment is fulfilled in conversation (a file shared, a task confirmed, someone says "done"), Commit marks it resolved automatically.
 - **Follow-ups** — surfaces things others owe you that have gone quiet. Drafts a polite nudge message and lets you send it directly from the dashboard.
 - **Reminders** — set a reminder on any commitment. When it's due, Commit sends you a WhatsApp message to your own account so it shows up in your chat list.
@@ -62,6 +63,11 @@ Commit defaults to:
 - MTP draft model: disabled by default (`COMMIT_LLM_DRAFT_MODEL=none`)
 - Embeddings: `mlx-community/embeddinggemma-300m-4bit`
 - Endpoint: `http://127.0.0.1:8080/v1`
+
+This release includes two smaller local generation options for Apple Silicon:
+
+- `mlx-community/gemma-4-e2b-it-4bit` — default efficient mode for the lowest steady-state footprint
+- `mlx-community/gemma-4-e4b-it-4bit` — balanced mode for more capacity while staying much smaller than 12B
 
 On first run, Commit checks the standard Hugging Face cache and downloads these repos with `hf download` or `huggingface-cli download` if they are missing. Install the Hugging Face Hub CLI with `pipx` first:
 
