@@ -3,11 +3,17 @@ set -euo pipefail
 
 export COMMIT_LLM_BASE_URL="${COMMIT_LLM_BASE_URL:-http://127.0.0.1:8080/v1}"
 export COMMIT_EMBEDDING_BASE_URL="${COMMIT_EMBEDDING_BASE_URL:-http://127.0.0.1:8081/v1}"
-export COMMIT_LLM_DRAFT_MODEL="${COMMIT_LLM_DRAFT_MODEL:-none}"
 export COMMIT_LLM_NUM_DRAFT_TOKENS="${COMMIT_LLM_NUM_DRAFT_TOKENS:-3}"
 
-MODEL="${COMMIT_LLM_MODEL:-mlx-community/gemma-4-e2b-it-4bit}"
+MODEL="${COMMIT_LLM_MODEL:-mlx-community/gemma-4-12B-it-qat-4bit}"
 EMBEDDING_MODEL="${COMMIT_EMBEDDING_MODEL:-mlx-community/embeddinggemma-300m-4bit}"
+if [[ -z "${COMMIT_LLM_DRAFT_MODEL:-}" ]]; then
+  if [[ "$MODEL" == "mlx-community/gemma-4-12B-it-qat-4bit" ]]; then
+    export COMMIT_LLM_DRAFT_MODEL="mlx-community/gemma-4-12B-it-qat-assistant-nvfp4"
+  else
+    export COMMIT_LLM_DRAFT_MODEL="none"
+  fi
+fi
 
 hf_cache_dir() {
   if [[ -n "${HUGGINGFACE_HUB_CACHE:-}" ]]; then

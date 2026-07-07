@@ -882,9 +882,13 @@ func localEmbeddingHealthCheck(ctx context.Context, model string) error {
 		return err
 	}
 	defer resp.Body.Close()
-	respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 1200))
 	if resp.StatusCode != http.StatusOK {
+		respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 1200))
 		return fmt.Errorf("local embedding health check failed with HTTP %d: %s", resp.StatusCode, strings.TrimSpace(string(respBody)))
+	}
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("read embedding health response: %w", err)
 	}
 	var parsed embeddingHealthResponse
 	if err := json.Unmarshal(respBody, &parsed); err != nil {
