@@ -12,17 +12,21 @@ import (
 )
 
 func (c *Client) handleBotCommand(ctx context.Context, evt *events.Message) bool {
-	isSelfChat := c.isSelfChat(evt)
-	if !evt.Info.IsFromMe && !isSelfChat {
-		return false
-	}
-
 	text := extractText(evt.Message)
 	if text == "" {
 		return false
 	}
 
 	lower := strings.TrimSpace(strings.ToLower(text))
+	command := botCommandName(lower)
+	if command == "" {
+		return false
+	}
+
+	isSelfChat := c.isSelfChat(evt)
+	if !evt.Info.IsFromMe && !isSelfChat {
+		return false
+	}
 
 	// @find — context-aware search, works in self-chat
 	if strings.HasPrefix(lower, "@find") {
@@ -59,6 +63,8 @@ func (c *Client) handleBotCommand(ctx context.Context, evt *events.Message) bool
 
 	// Self-chat commands only
 	if !isSelfChat {
+		log.Printf("bot command ignored outside self-chat: command=%s chat=%s sender=%s fromMe=%v own=%s ownLID=%s",
+			command, evt.Info.Chat, evt.Info.Sender, evt.Info.IsFromMe, c.GetOwnJID(), c.GetOwnLID())
 		return false
 	}
 
@@ -92,6 +98,29 @@ func (c *Client) handleBotCommand(ctx context.Context, evt *events.Message) bool
 	return true
 }
 
+func botCommandName(lower string) string {
+	switch {
+	case strings.HasPrefix(lower, "@find"):
+		return "@find"
+	case strings.HasPrefix(lower, "@commit"):
+		return "@commit"
+	case lower == "commitments" || lower == "c":
+		return "commitments"
+	case strings.HasPrefix(lower, "owe "):
+		return "owe"
+	case strings.HasPrefix(lower, "done "):
+		return "done"
+	case strings.HasPrefix(lower, "search "):
+		return "search"
+	case lower == "help" || lower == "h":
+		return "help"
+	case len(lower) == 1 && lower[0] >= 'a' && lower[0] <= 'z':
+		return "disambiguate"
+	default:
+		return ""
+	}
+}
+
 func (c *Client) sendBotReply(ctx context.Context, evt *events.Message, text string) {
 	if strings.TrimSpace(text) == "" {
 		return
@@ -110,11 +139,15 @@ func (c *Client) sendBotReply(ctx context.Context, evt *events.Message, text str
 
 func (c *Client) botReplyTarget(evt *events.Message) types.JID {
 	if c.isSelfChat(evt) {
+		chat := normalizeUserJID(evt.Info.Chat)
 		ownJID := c.GetOwnJID()
+		ownLID := c.GetOwnLID()
+		if sameUserJID(chat, ownJID) || sameUserJID(chat, ownLID) {
+			return chat
+		}
 		if !ownJID.IsEmpty() {
 			return types.NewJID(ownJID.User, types.DefaultUserServer)
 		}
-		ownLID := c.GetOwnLID()
 		if !ownLID.IsEmpty() {
 			return types.NewJID(ownLID.User, types.HiddenUserServer)
 		}

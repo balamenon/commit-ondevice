@@ -147,6 +147,14 @@ func (e *Extractor) ProcessBatch(ctx context.Context) error {
 		e.debugMu.Unlock()
 		return nil
 	}
+	msgs = e.skipSavedBotCommands(msgs)
+	if len(msgs) == 0 {
+		e.debugMu.Lock()
+		e.lastRunAt = time.Now()
+		e.batchesRun++
+		e.debugMu.Unlock()
+		return nil
+	}
 	log.Printf("processing %d unprocessed messages", len(msgs))
 	if err := e.indexMessages(ctx, msgs); err != nil {
 		log.Printf("semantic indexing failed: %v", err)
@@ -250,6 +258,74 @@ func (e *Extractor) ProcessBatch(ctx context.Context) error {
 	e.debugMu.Unlock()
 
 	return extractionErr
+}
+
+func (e *Extractor) skipSavedBotCommands(msgs []*store.Message) []*store.Message {
+	kept := make([]*store.Message, 0, len(msgs))
+	var skipped []string
+	for _, msg := range msgs {
+		if isSavedSelfBotCommand(msg) {
+			skipped = append(skipped, msg.ID)
+			continue
+		}
+		kept = append(kept, msg)
+	}
+	if len(skipped) > 0 {
+		if err := e.db.MarkMessagesProcessed(skipped); err != nil {
+			log.Printf("mark bot command messages processed error: %v", err)
+			return msgs
+		}
+		log.Printf("skipped %d saved bot command messages", len(skipped))
+	}
+	return kept
+}
+
+func isSavedSelfBotCommand(msg *store.Message) bool {
+	if msg == nil || !msg.IsFromMe || msg.IsGroup || !sameStoredJIDUser(msg.ChatJID, msg.SenderJID) {
+		return false
+	}
+	return savedBotCommandName(strings.TrimSpace(strings.ToLower(msg.Content))) != ""
+}
+
+func sameStoredJIDUser(chatJID, senderJID string) bool {
+	chatUser, chatServer := splitStoredJID(chatJID)
+	senderUser, senderServer := splitStoredJID(senderJID)
+	return chatUser != "" &&
+		chatUser == senderUser &&
+		(chatServer == "lid" || chatServer == "s.whatsapp.net") &&
+		(senderServer == "lid" || senderServer == "s.whatsapp.net")
+}
+
+func splitStoredJID(jid string) (string, string) {
+	before, after, ok := strings.Cut(jid, "@")
+	if !ok {
+		return "", ""
+	}
+	user, _, _ := strings.Cut(before, ":")
+	return user, after
+}
+
+func savedBotCommandName(lower string) string {
+	switch {
+	case strings.HasPrefix(lower, "@find"):
+		return "@find"
+	case strings.HasPrefix(lower, "@commit"):
+		return "@commit"
+	case lower == "commitments" || lower == "c":
+		return "commitments"
+	case strings.HasPrefix(lower, "owe "):
+		return "owe"
+	case strings.HasPrefix(lower, "done "):
+		return "done"
+	case strings.HasPrefix(lower, "search "):
+		return "search"
+	case lower == "help" || lower == "h":
+		return "help"
+	case len(lower) == 1 && lower[0] >= 'a' && lower[0] <= 'z':
+		return "disambiguate"
+	default:
+		return ""
+	}
 }
 
 func (e *Extractor) extractFromChat(ctx context.Context, apiKey string, msgs []*store.Message, openCommitments []*store.Commitment) (*extractionResult, error) {

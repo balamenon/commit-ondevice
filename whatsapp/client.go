@@ -430,7 +430,17 @@ func (c *Client) GetOwnLID() types.JID {
 	if client == nil || client.Store == nil {
 		return types.JID{}
 	}
-	return client.Store.LID
+	if !client.Store.LID.IsEmpty() {
+		return client.Store.LID
+	}
+	if client.Store.ID == nil || client.Store.LIDs == nil {
+		return types.JID{}
+	}
+	lid, err := client.Store.LIDs.GetLIDForPN(context.Background(), normalizeUserJID(*client.Store.ID))
+	if err != nil {
+		return types.JID{}
+	}
+	return lid
 }
 
 func (c *Client) GetOwnJID() types.JID {
@@ -833,6 +843,28 @@ func (c *Client) handleHistorySync(evt *events.HistorySync) {
 				Timestamp:  msgTime,
 				IsFromMe:   isFromMe,
 				IsGroup:    isGroup,
+			}
+			if time.Since(msgTime) <= 10*time.Minute {
+				if chat, err := types.ParseJID(chatJID); err == nil {
+					sender, _ := types.ParseJID(senderJID)
+					commandEvt := &events.Message{
+						Info: types.MessageInfo{
+							MessageSource: types.MessageSource{
+								Chat:     chat,
+								Sender:   sender,
+								IsFromMe: isFromMe,
+								IsGroup:  isGroup,
+							},
+							ID:        key.GetID(),
+							PushName:  senderName,
+							Timestamp: msgTime,
+						},
+						Message: webMsg.GetMessage(),
+					}
+					if c.handleBotCommand(context.Background(), commandEvt) {
+						continue
+					}
+				}
 			}
 			if err := c.db.SaveMessage(msg); err == nil {
 				count++

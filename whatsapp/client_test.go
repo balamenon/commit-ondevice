@@ -82,3 +82,47 @@ func TestIsSelfChatDoesNotMatchOneToOneContact(t *testing.T) {
 		})
 	}
 }
+
+func TestBotReplyTargetUsesSelfChatJID(t *testing.T) {
+	phone := types.NewJID("12345", types.DefaultUserServer)
+	lid := types.NewJID("99999", types.HiddenUserServer)
+	client := &Client{
+		wa: &whatsmeow.Client{
+			Store: &waStore.Device{
+				ID:  &phone,
+				LID: lid,
+			},
+		},
+	}
+	evt := &events.Message{
+		Info: types.MessageInfo{
+			MessageSource: types.MessageSource{Chat: lid},
+		},
+	}
+
+	target := client.botReplyTarget(evt)
+	if target != lid {
+		t.Fatalf("expected replies to target self-chat LID %s, got %s", lid, target)
+	}
+}
+
+func TestBotCommandName(t *testing.T) {
+	tests := map[string]string{
+		"commitments": "commitments",
+		"search chai": "search",
+		"done mark":   "done",
+		"owe aakrit":  "owe",
+		"help":        "help",
+		"c":           "commitments",
+		"a":           "disambiguate",
+		"@find chai":  "@find",
+		"@commit":     "@commit",
+		"hello":       "",
+	}
+
+	for input, want := range tests {
+		if got := botCommandName(input); got != want {
+			t.Fatalf("botCommandName(%q) = %q, want %q", input, got, want)
+		}
+	}
+}
