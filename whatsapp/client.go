@@ -146,13 +146,14 @@ func (c *Client) Login(ctx context.Context) (<-chan string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("get container: %w", err)
 	}
+	if devices, err := container.GetAllDevices(ctx); err != nil {
+		return nil, fmt.Errorf("get devices: %w", err)
+	} else if len(devices) > 0 {
+		return nil, fmt.Errorf("whatsapp session already exists")
+	}
 
 	deviceStore := container.NewDevice()
 	client := whatsmeow.NewClient(deviceStore, waLog.Noop)
-
-	c.mu.Lock()
-	c.wa = client
-	c.mu.Unlock()
 
 	client.AddEventHandler(c.handleEvent)
 
@@ -173,6 +174,7 @@ func (c *Client) Login(ctx context.Context) (<-chan string, error) {
 				}
 			} else if evt.Event == "success" {
 				c.mu.Lock()
+				c.wa = client
 				c.connected = true
 				c.mu.Unlock()
 				c.startLoops(c.appCtx)
@@ -355,18 +357,53 @@ func (c *Client) getChatName(jid types.JID) string {
 }
 
 func (c *Client) SendMessage(ctx context.Context, jid types.JID, text string) error {
-	c.mu.RLock()
-	client := c.wa
-	c.mu.RUnlock()
-
+	client, err := c.sendClient(ctx)
+	if err != nil {
+		return err
+	}
 	if client == nil {
 		return fmt.Errorf("not connected")
 	}
 
-	_, err := client.SendMessage(ctx, jid, &waE2E.Message{
+	_, err = client.SendMessage(ctx, jid, &waE2E.Message{
 		Conversation: &text,
 	})
 	return err
+}
+
+func (c *Client) sendClient(ctx context.Context) (*whatsmeow.Client, error) {
+	c.mu.RLock()
+	client := c.wa
+	c.mu.RUnlock()
+
+	if client != nil && client.Store != nil && client.Store.ID != nil {
+		return client, nil
+	}
+
+	container, err := c.getContainer()
+	if err != nil {
+		return nil, fmt.Errorf("get container: %w", err)
+	}
+	deviceStore, err := container.GetFirstDevice(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("get device: %w", err)
+	}
+	if deviceStore.ID == nil {
+		return nil, fmt.Errorf("not logged in")
+	}
+
+	client = whatsmeow.NewClient(deviceStore, waLog.Noop)
+	client.AddEventHandler(c.handleEvent)
+	if err := client.Connect(); err != nil {
+		return nil, fmt.Errorf("connect: %w", err)
+	}
+
+	c.mu.Lock()
+	c.wa = client
+	c.connected = true
+	c.mu.Unlock()
+	c.startLoops(c.appCtx)
+	return client, nil
 }
 
 func (c *Client) Notify(text string) {
@@ -452,6 +489,13 @@ func (c *Client) PhoneForLID(lid types.JID) types.JID {
 	lid = normalizeUserJID(lid)
 	if lid.Server != types.HiddenUserServer {
 		return types.JID{}
+	}
+	ownLID := normalizeUserJID(c.GetOwnLID())
+	if sameUserJID(lid, ownLID) {
+		ownJID := normalizeUserJID(c.GetOwnJID())
+		if !ownJID.IsEmpty() {
+			return types.NewJID(ownJID.User, types.DefaultUserServer)
+		}
 	}
 	c.mu.RLock()
 	client := c.wa

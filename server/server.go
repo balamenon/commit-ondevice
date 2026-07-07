@@ -581,6 +581,10 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	qrChan, err := s.wa.Login(ctx)
 	if err != nil {
+		if s.wa.HasSession() {
+			writeJSON(w, map[string]any{"connected": s.wa.IsConnected()})
+			return
+		}
 		log.Printf("login error: %v", err)
 		http.Error(w, "login failed", 500)
 		return
@@ -604,6 +608,11 @@ func (s *Server) handleLoginQR(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	qrChan, err := s.wa.Login(ctx)
 	if err != nil {
+		if s.wa.HasSession() {
+			fmt.Fprintf(w, "data: {\"connected\": true}\n\n")
+			flusher.Flush()
+			return
+		}
 		log.Printf("login error: %v", err)
 		fmt.Fprintf(w, "data: {\"error\": \"login failed\"}\n\n")
 		flusher.Flush()

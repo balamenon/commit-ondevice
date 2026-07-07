@@ -119,7 +119,7 @@ func TestIsSelfChatDoesNotMatchOneToOneContact(t *testing.T) {
 	}
 }
 
-func TestBotReplyTargetUsesSelfChatJID(t *testing.T) {
+func TestBotReplyTargetUsesOwnerPhoneForSelfChatLID(t *testing.T) {
 	phone := types.NewJID("12345", types.DefaultUserServer)
 	lid := types.NewJID("99999", types.HiddenUserServer)
 	client := &Client{
@@ -137,8 +137,8 @@ func TestBotReplyTargetUsesSelfChatJID(t *testing.T) {
 	}
 
 	target := client.botReplyTarget(evt)
-	if target != lid {
-		t.Fatalf("expected replies to target self-chat LID %s, got %s", lid, target)
+	if target != phone {
+		t.Fatalf("expected replies to target owner phone %s, got %s", phone, target)
 	}
 }
 
