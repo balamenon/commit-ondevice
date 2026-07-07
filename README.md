@@ -173,4 +173,4 @@ NOTARY_PROFILE="commit-notary" \
 
 ## License
 
-Private. Not open source.
+Open Source. Fork away and play.
