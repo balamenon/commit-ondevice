@@ -3,10 +3,10 @@ set -euo pipefail
 
 export COMMIT_LLM_BASE_URL="${COMMIT_LLM_BASE_URL:-http://127.0.0.1:8080/v1}"
 export COMMIT_EMBEDDING_BASE_URL="${COMMIT_EMBEDDING_BASE_URL:-$COMMIT_LLM_BASE_URL}"
-export COMMIT_LLM_DRAFT_MODEL="${COMMIT_LLM_DRAFT_MODEL:-mlx-community/gemma-4-12B-it-qat-assistant-nvfp4}"
+export COMMIT_LLM_DRAFT_MODEL="${COMMIT_LLM_DRAFT_MODEL:-none}"
 export COMMIT_LLM_NUM_DRAFT_TOKENS="${COMMIT_LLM_NUM_DRAFT_TOKENS:-3}"
 
-MODEL="${COMMIT_LLM_MODEL:-mlx-community/gemma-4-12B-it-qat-4bit}"
+MODEL="${COMMIT_LLM_MODEL:-mlx-community/gemma-4-e2b-it-4bit}"
 EMBEDDING_MODEL="${COMMIT_EMBEDDING_MODEL:-mlx-community/embeddinggemma-300m-4bit}"
 
 hf_cache_dir() {
@@ -129,7 +129,7 @@ ensure_hf_cli() {
 cat <<EOF
 Starting MLX server for Commit
   generation model: $MODEL
-  MTP draft model:  $COMMIT_LLM_DRAFT_MODEL
+  MTP draft model:  ${COMMIT_LLM_DRAFT_MODEL}
   embedding model:  $EMBEDDING_MODEL
   endpoint:         $COMMIT_LLM_BASE_URL
 
@@ -145,9 +145,9 @@ download_model "$EMBEDDING_MODEL"
 MLX_SERVER="$(find_mlx_server)"
 ensure_mlx_server_healthy "$MLX_SERVER"
 
-exec "$MLX_SERVER" \
-  --model "$MODEL" \
-  --draft-model "$COMMIT_LLM_DRAFT_MODEL" \
-  --draft-kind mtp \
-  --host 127.0.0.1 \
-  --port 8080
+ARGS=(--model "$MODEL" --host 127.0.0.1 --port 8080)
+if [[ -n "$COMMIT_LLM_DRAFT_MODEL" && "$COMMIT_LLM_DRAFT_MODEL" != "none" ]]; then
+  ARGS+=(--draft-model "$COMMIT_LLM_DRAFT_MODEL" --draft-kind mtp)
+fi
+
+exec "$MLX_SERVER" "${ARGS[@]}"

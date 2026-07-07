@@ -435,6 +435,7 @@ func (c *Client) startLoops(ctx context.Context) {
 	go c.extractor.StartProcessingLoop(ctx)
 	go c.extractor.StartResolutionLoop(ctx)
 	go c.reminderLoop(ctx)
+	go c.morningDigestLoop(ctx)
 }
 
 func (c *Client) getContainer() (*sqlstore.Container, error) {
@@ -660,6 +661,59 @@ func (c *Client) reminderLoop(ctx context.Context) {
 				}
 				c.db.ClearReminder(cm.ID)
 			}
+		}
+	}
+}
+
+// morningDigestLoop sends one self-chat message per day, after 8am local,
+// with the top 3 items from the same ranking that powers the Today view.
+// Tenets: one moment per day, only your own commitments, only if something
+// actually has consequences — a quiet day sends nothing.
+func (c *Client) morningDigestLoop(ctx context.Context) {
+	ticker := time.NewTicker(60 * time.Second)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			now := time.Now()
+			if now.Hour() < 8 {
+				continue
+			}
+			today := now.Format("2006-01-02")
+			if c.db.GetSetting("last_morning_digest") == today {
+				continue
+			}
+			cands, err := c.db.GetTodayCandidates()
+			if err != nil {
+				log.Printf("morning digest candidates error: %v", err)
+				continue
+			}
+			items := store.RankToday(cands, now, 3)
+			if len(items) == 0 {
+				// Nothing worth a nudge today — stay quiet, but don't retry all day.
+				c.db.SetSetting("last_morning_digest", today)
+				continue
+			}
+			var b strings.Builder
+			b.WriteString("☀️ Worth acting on today:\n")
+			for i, it := range items {
+				b.WriteString(fmt.Sprintf("\n%d. %s", i+1, it.Title))
+				if it.Reason != "" {
+					b.WriteString(" — " + it.Reason)
+				}
+			}
+			ownJID := c.GetOwnJID()
+			if ownJID.IsEmpty() {
+				continue
+			}
+			selfJID := types.NewJID(ownJID.User, types.DefaultUserServer)
+			if err := c.SendMessage(ctx, selfJID, b.String()); err != nil {
+				log.Printf("morning digest send error: %v", err)
+				continue
+			}
+			c.db.SetSetting("last_morning_digest", today)
 		}
 	}
 }

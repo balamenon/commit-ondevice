@@ -6,14 +6,14 @@ When something goes quiet, it surfaces it for follow-up.
 
 ## How it works
 
-You scan a QR code to link your WhatsApp account, same as WhatsApp Web. Commit runs on your machine. Every 10 seconds it reads new messages, analyzes them with a local MLX Gemma 4 12B model, indexes them with EmbeddingGemma, and logs any commitments it finds.
+You scan a QR code to link your WhatsApp account, same as WhatsApp Web. Commit runs on your machine. Every 10 seconds it reads new messages, analyzes them with a local MLX Gemma 4 model, indexes them with EmbeddingGemma, and logs any commitments it finds.
 
 The dashboard shows everything grouped by person: what you owe, what they owe, how long it's been. You can reply, set reminders, mark things done, or dismiss them.
 
 ## Features
 
 - **Dashboard** — all open commitments in one view, grouped by chat. Filter by "I owe", "They owe", or "Resolved". Search across everything.
-- **Auto-extraction** — Gemma 4 12B reads incoming messages every 10 seconds, identifies promises and obligations, and logs them with the original quote, person, and direction.
+- **Auto-extraction** — local Gemma 4 reads incoming messages every 10 seconds, identifies promises and obligations, and logs them with the original quote, person, and direction.
 - **Semantic search** — EmbeddingGemma indexes WhatsApp text locally so `@find` can use meaning-based retrieval in addition to keyword search.
 - **Auto-resolution** — when a commitment is fulfilled in conversation (a file shared, a task confirmed, someone says "done"), Commit marks it resolved automatically.
 - **Follow-ups** — surfaces things others owe you that have gone quiet. Drafts a polite nudge message and lets you send it directly from the dashboard.
@@ -37,11 +37,7 @@ The dashboard shows everything grouped by person: what you owe, what they owe, h
 
 ### Mac (DMG)
 
-Download `Commit-x.x.x.dmg` from Releases, open it, and drag Commit to Applications. Then run:
-
-```bash
-/Applications/Commit.app/Contents/MacOS/Commit
-```
+Download `Commit-x.x.x.dmg` from Releases, open it, drag Commit to Applications, and open Commit from Applications.
 
 ### Windows
 
@@ -62,8 +58,8 @@ go build -o commit .
 
 Commit defaults to:
 
-- Generation: `mlx-community/gemma-4-12B-it-qat-4bit`
-- MTP draft model: `mlx-community/gemma-4-12B-it-qat-assistant-nvfp4`
+- Generation: `mlx-community/gemma-4-e2b-it-4bit`
+- MTP draft model: disabled by default (`COMMIT_LLM_DRAFT_MODEL=none`)
 - Embeddings: `mlx-community/embeddinggemma-300m-4bit`
 - Endpoint: `http://127.0.0.1:8080/v1`
 
@@ -74,13 +70,22 @@ brew install pipx
 pipx install "huggingface-hub[hf_xet]"
 ```
 
-Commit shows dependency/model download status in the setup screen, repairs the local Gemma runtime when needed, then starts `mlx_vlm.server` automatically with the MTP draft model when the cache is ready. The bundled `scripts/start-mlx-gemma.sh` remains available for debugging, but normal users should not need a terminal.
+Commit shows dependency/model download status in the setup screen, repairs the local Gemma runtime when needed, then starts `mlx_vlm.server` automatically when the cache is ready. The bundled `scripts/start-mlx-gemma.sh` remains available for debugging, but normal users should not need a terminal.
 
 Environment overrides:
 
 ```bash
 COMMIT_LLM_BASE_URL=http://127.0.0.1:8080/v1
 COMMIT_EMBEDDING_BASE_URL=http://127.0.0.1:8080/v1
+COMMIT_LLM_MODEL=mlx-community/gemma-4-e2b-it-4bit
+COMMIT_LLM_DRAFT_MODEL=none
+COMMIT_EMBEDDING_MODEL=mlx-community/embeddinggemma-300m-4bit
+```
+
+For higher-accuracy local inference with the original MTP setup:
+
+```bash
+COMMIT_LLM_MODEL=mlx-community/gemma-4-12B-it-qat-4bit
 COMMIT_LLM_DRAFT_MODEL=mlx-community/gemma-4-12B-it-qat-assistant-nvfp4
 COMMIT_LLM_NUM_DRAFT_TOKENS=3
 ```
@@ -152,7 +157,7 @@ NOTARY_PROFILE="commit-notary" \
 
 ## Third-party services
 
-- **MLX / Gemma 4 12B** — local commitment extraction and nudge generation
+- **MLX / Gemma 4** — local commitment extraction, media descriptions, and nudge generation
 - **EmbeddingGemma** — local semantic indexing for WhatsApp search
 
 ## License

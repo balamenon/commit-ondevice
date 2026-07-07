@@ -1,4 +1,4 @@
-<!-- v1.3.1 -->
+<!-- v1.3.2 -->
 <!doctype html>
 <html lang="en">
 <head>
@@ -272,7 +272,7 @@
 <div class="header">
   <div class="header-left">
     <svg viewBox="0 0 24 24" fill="none"><path d="M12 2C12.4 5.5 14 8 16.5 10C19 11.5 22 11.8 22 12C22 12.2 19 12.5 16.5 14C14 16 12.4 18.5 12 22C11.6 18.5 10 16 7.5 14C5 12.5 2 12.2 2 12C2 11.8 5 11.5 7.5 10C10 8 11.6 5.5 12 2Z" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>
-    Commit <span class="version">v1.3.1</span>
+    Commit <span class="version">v1.3.2</span>
   </div>
   <div class="clock" id="clock"></div>
 </div>
@@ -283,7 +283,7 @@
 
 <div class="section">
 <p><b>simple setup</b></p>
-<p>you scan a QR code to link your WhatsApp account, same as WhatsApp Web. Commit runs on your machine. every 10 seconds it reads new messages, sends them to the Claude API for analysis, and logs any commitments it finds.</p>
+<p>you scan a QR code to link your WhatsApp account, same as WhatsApp Web. Commit runs on your machine. every 10 seconds it reads new messages, analyzes them with local MLX/Gemma models, and logs any commitments it finds.</p>
 <p>the dashboard shows everything grouped by person: what you owe, what they owe, how long it's been. you can reply, set reminders, mark things done, or dismiss them.</p>
 </div>
 
@@ -291,7 +291,9 @@
 <p><b>features</b></p>
 <ol>
 <li>auto-extraction and auto-resolution of commitments</li>
-<li>"needs your attention" &mdash; surfaces what's about to drop, who's gone quiet, and what's dying in the dark</li>
+<li>"act on today" &mdash; the home screen opens with the 3-5 things worth acting on right now: real deadlines, aging promises, conversations going cold</li>
+<li>morning digest &mdash; one WhatsApp message a day with your top items; quiet days send nothing</li>
+<li>every card acts &mdash; Done, Snooze (quiet for a week), Reply, and Context on every commitment</li>
 <li>nudge messages in three tones &mdash; gentle, direct, or firm</li>
 <li>reply to any chat from the dashboard</li>
 <li><code>@find</code> &mdash; ask anything about your chats from WhatsApp or the dashboard. person-aware search with conversation threading</li>
@@ -301,24 +303,24 @@
 <li>bot commands (message yourself: "commitments", "owe @name", "done &lt;text&gt;")</li>
 <li>rename contacts whose WhatsApp names don't match your phonebook</li>
 <li>favorites, search, reminders, dark mode, mobile web</li>
-<li>passcode protection, AES-GCM encrypted API key</li>
+<li>passcode protection and local-only model setup</li>
 </ol>
 </div>
 
 <div class="section">
 <p><b>a note on privacy</b></p>
 <p>messages are decrypted on your machine and stored in a local SQLite database. nothing is uploaded to a server by Commit.</p>
-<p>message content is sent to the Claude API for commitment extraction. <a href="https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching#data-retention-and-privacy">Anthropic does not train on API inputs.</a></p>
+<p>message content is analyzed by local models on this Mac for commitment extraction, search indexing, and media descriptions.</p>
 </div>
 
 <div class="section">
 <p><b>requirements</b></p>
-<p>macOS 12+ or Windows 10+. a WhatsApp account. a <a href="https://console.anthropic.com/">Claude API key</a>.</p>
+<p>macOS 12+ or Windows 10+. a WhatsApp account. on Mac, Commit downloads and caches the local MLX/Gemma models on first run.</p>
 </div>
 
 <p><a href="https://github.com/mitensampat/commit/releases/latest" style="font-weight: 600;">download the latest release</a> · <a href="#screens" class="link">see it in action</a></p>
 
-<p class="quiet" style="margin-top: 24px;">brought to you by <a href="https://x.com/miten">MS Foundry</a> &middot; updated 4 Jul 2026</p>
+<p class="quiet" style="margin-top: 24px;">brought to you by <a href="https://x.com/miten">MS Foundry</a> &middot; updated 5 Jul 2026</p>
 
 <div class="screens" id="screens">
 <hr>

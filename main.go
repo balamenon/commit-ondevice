@@ -47,7 +47,7 @@ func main() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	modelManager := localmodel.NewManager()
+	modelManager := localmodel.NewManager(db)
 	modelManager.Start(ctx)
 
 	extractor := extraction.New(db, nil)

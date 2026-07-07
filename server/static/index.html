@@ -10,24 +10,24 @@
     <link href="https://fonts.googleapis.com/css2?family=Newsreader:wght@400;500;600&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         :root {
-            --canvas: #f5f6f8;
+            --canvas: #ffffff;
             --surface: #ffffff;
-            --surface-sunken: #eceef2;
-            --ink: #1a1f25;
+            --surface-sunken: #f7f7f8;
+            --ink: #1a1a1a;
             --ink-secondary: #444b55;
-            --ink-tertiary: #6e7681;
-            --ink-faint: #9ea7b3;
-            --line: #c8ced6;
-            --line-strong: #b0b8c2;
-            --accent: #1a1f25;
-            --accent-light: #e8ebf0;
+            --ink-tertiary: #6b6b6b;
+            --ink-faint: #9a9a9a;
+            --line: #e4e4e7;
+            --line-strong: #d4d4d8;
+            --accent: #1a1a1a;
+            --accent-light: #ededf0;
             --growth: #1a6b3a;
             --growth-light: #dceee2;
-            --warning: #9a7d3a;
-            --warning-light: #f0ead8;
+            --warning: #c4700a;
+            --warning-light: #fef7ed;
             --danger: #a12535;
-            --info: #2d5f82;
-            --info-light: #dde9f2;
+            --info: #2563eb;
+            --info-light: #eff6ff;
             --font-display: 'Newsreader', Georgia, serif;
             --font-body: 'Public Sans', -apple-system, sans-serif;
             --radius-sm: 4px;
@@ -819,6 +819,159 @@
             background: var(--line);
         }
 
+        /* ── Today view ── */
+        .today-section-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--ink-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            padding: 16px 0 10px;
+        }
+        .today-card { border-left: 3px solid transparent; }
+        .today-card.deadline { border-left-color: var(--warning); }
+        .today-card.stale { border-left-color: var(--info); }
+        .today-card .commitment-title { font-size: 14px; }
+        .today-meta {
+            display: flex;
+            align-items: baseline;
+            gap: 7px;
+            margin-top: 4px;
+            min-width: 0;
+        }
+        .today-person {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--ink-secondary);
+            white-space: nowrap;
+        }
+        .today-meta-sep { font-size: 12px; color: var(--ink-faint); }
+        .today-reason {
+            font-size: 11px;
+            padding: 1px 8px;
+            border-radius: 10px;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
+            min-width: 0;
+        }
+        .today-reason.deadline { background: var(--warning-light); color: var(--warning); }
+        .today-reason.stale { background: var(--info-light); color: var(--info); }
+        .today-reason.plain { background: var(--surface-sunken); color: var(--ink-tertiary); }
+        .trust-line {
+            font-size: 12px;
+            color: var(--ink-faint);
+            text-align: center;
+            padding: 10px 0 4px;
+        }
+        .trust-line a {
+            color: var(--ink-tertiary);
+            text-decoration: none;
+            border-bottom: 1px dotted var(--ink-faint);
+            cursor: pointer;
+        }
+        .fav-track-row {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 4px;
+            scrollbar-width: none;
+        }
+        .fav-track-row::-webkit-scrollbar { display: none; }
+        .fav-chip {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 13px 7px 7px;
+            border: 1px solid var(--line);
+            border-radius: 20px;
+            background: var(--surface);
+            cursor: pointer;
+            white-space: nowrap;
+            flex-shrink: 0;
+            transition: background 0.15s;
+        }
+        .fav-chip:hover { background: var(--surface-sunken); }
+        .fav-chip-avatar {
+            width: 26px; height: 26px;
+            border-radius: 50%;
+            background: var(--surface-sunken);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 11px; font-weight: 600;
+            color: var(--ink-tertiary);
+        }
+        .fav-chip-avatar.group { border-radius: 8px; }
+        .fav-chip-name { font-size: 13px; font-weight: 500; color: var(--ink); }
+        .fav-chip-count {
+            font-size: 11px;
+            background: var(--surface-sunken);
+            padding: 1px 7px;
+            border-radius: 10px;
+            color: var(--ink-tertiary);
+            font-variant-numeric: tabular-nums;
+        }
+        .fav-chip-count.has-owed { background: var(--warning-light); color: var(--warning); }
+        .today-summary {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1px;
+            background: var(--line);
+            border: 1px solid var(--line);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            margin: 20px 0 24px;
+        }
+        .today-summary-cell {
+            background: var(--surface);
+            padding: 14px 10px;
+            text-align: center;
+            cursor: pointer;
+            border: none;
+            font-family: var(--font-body);
+            transition: background 0.15s;
+        }
+        .today-summary-cell:hover { background: var(--surface-sunken); }
+        .today-summary-num { font-size: 20px; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+        .today-summary-label { font-size: 12px; color: var(--ink-tertiary); margin-top: 2px; }
+        .today-empty {
+            text-align: center;
+            padding: 32px 20px;
+            border: 1px solid var(--line);
+            border-radius: var(--radius-md);
+            background: var(--surface);
+        }
+        .today-empty-title { font-size: 14px; font-weight: 500; color: var(--ink); }
+        .today-empty-sub { font-size: 13px; color: var(--ink-faint); margin-top: 4px; }
+        .open-filter-bar {
+            display: flex;
+            gap: 6px;
+            padding: 14px 0 4px;
+            overflow-x: auto;
+            scrollbar-width: none;
+        }
+        .open-filter-bar::-webkit-scrollbar { display: none; }
+        .open-filter-chip {
+            background: none;
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            padding: 5px 12px;
+            font-size: 12px;
+            font-family: var(--font-body);
+            color: var(--ink-tertiary);
+            cursor: pointer;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .open-filter-chip:hover { background: var(--surface-sunken); }
+        .open-filter-chip.active {
+            background: var(--accent);
+            color: var(--canvas);
+            border-color: var(--accent);
+        }
+
         /* Needs attention section */
         .attention-section {
             margin-bottom: 8px;
@@ -1215,7 +1368,7 @@
             background: var(--surface);
             border: 1px solid var(--line);
             border-radius: 0;
-            padding: 14px 18px;
+            padding: 12px 16px;
             margin-bottom: 6px;
             transition: all 0.15s;
             position: relative;
@@ -1288,15 +1441,15 @@
             font-size: 13.5px;
             font-weight: 500;
             color: var(--ink);
-            line-height: 1.5;
-            margin-bottom: 4px;
+            line-height: 1.45;
+            margin-bottom: 2px;
         }
 
         .commitment-context {
             font-size: 12px;
             color: var(--ink-secondary);
-            line-height: 1.5;
-            margin-bottom: 8px;
+            line-height: 1.45;
+            margin-bottom: 6px;
         }
 
         .commitment-source {
@@ -1336,16 +1489,34 @@
         }
 
         .commitment-actions {
-            opacity: 0;
-            transition: opacity 0.15s;
             display: flex;
             gap: 4px;
             flex-shrink: 0;
             margin-top: 2px;
         }
 
-        .commitment-card:hover .commitment-actions {
-            opacity: 1;
+        /* Hover-reveal only where hover exists; always visible on touch (iPhone, iPad) */
+        @media (hover: hover) and (pointer: fine) {
+            .commitment-actions {
+                opacity: 0;
+                transition: opacity 0.15s;
+            }
+            .commitment-card:hover .commitment-actions,
+            .commitment-card:focus-within .commitment-actions {
+                opacity: 1;
+            }
+        }
+
+        @media (hover: none) {
+            .favorite-btn, .reminder-btn, .group-fav-btn { opacity: 1 !important; }
+            .action-btn { padding: 6px 12px; font-size: 12px; }
+        }
+
+        /* iPad Pro and other large touch screens: comfortable tap targets */
+        @media (min-width: 1024px) and (pointer: coarse) {
+            .action-btn { padding: 8px 14px; font-size: 12px; }
+            .tab { padding: 12px 16px; font-size: 14px; }
+            .fav-chip { padding: 9px 15px 9px 9px; }
         }
 
         .favorite-btn {
@@ -1614,8 +1785,12 @@
         .followup-filter-bar {
             display: flex;
             gap: 6px;
-            margin-bottom: 16px;
+            padding: 14px 0 4px;
+            margin-bottom: 12px;
+            overflow-x: auto;
+            scrollbar-width: none;
         }
+        .followup-filter-bar::-webkit-scrollbar { display: none; }
 
         .followup-filter {
             font-family: var(--font-body);
@@ -1916,8 +2091,9 @@
         .commitment-meta {
             display: flex;
             align-items: center;
-            gap: 10px;
-            margin-top: 6px;
+            flex-wrap: wrap;
+            gap: 4px 10px;
+            margin-top: 5px;
         }
 
         .commitment-date {
@@ -2063,11 +2239,14 @@
             .topbar-left { gap: 8px; }
             .topbar-status span:last-child { display: none; }
             .topbar-right { gap: 6px; }
-            .topbar-clock { display: none; }
+            .topbar-clock { font-size: 11px; }
             .topbar-btn { padding: 5px 8px; font-size: 11px; }
             .topbar-btn-label { display: none; }
             .greeting { padding: 16px 16px 0; font-size: 17px; }
             .search-bar-container { padding: 12px 16px 0; max-width: 100%; }
+            .search-bar input { font-size: 16px; } /* prevents iOS zoom-on-focus */
+            .today-summary-num { font-size: 18px; }
+            .today-card .commitment-title { white-space: normal; }
             .tab-bar { padding: 0 16px; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
             .tab-bar::-webkit-scrollbar { display: none; }
             .tab { padding: 10px 10px; font-size: 12px; white-space: nowrap; flex-shrink: 0; }
@@ -2076,16 +2255,17 @@
             .content-inner { padding: 0 16px; max-width: 100%; }
             .commitment-source { display: none; }
             .summary-stat .stat-value { font-size: 16px; }
-            .commitment-card { padding: 12px 14px; }
+            .commitment-card { padding: 10px 12px; margin-bottom: 4px; }
             .commitment-top { flex-wrap: wrap; }
             .commitment-body { width: 100%; }
+            .commitment-context { margin-bottom: 4px; }
             .commitment-actions {
                 opacity: 1;
                 width: 100%;
-                margin-top: 10px;
-                padding-top: 8px;
+                margin-top: 8px;
+                padding-top: 6px;
                 border-top: 1px solid var(--line);
-                gap: 8px;
+                gap: 6px;
             }
             .commitment-actions .action-btn { flex: 1; justify-content: center; }
             .favorite-btn, .reminder-btn { opacity: 1 !important; position: static; flex-shrink: 0; }
@@ -2485,19 +2665,17 @@
             <div class="search-hints">
                 <span class="search-hint"><span class="search-hint-cmd">@find</span> Ask anything about your chats</span>
                 <span class="search-hint-sep"></span>
-                <span class="search-hint"><span class="search-hint-cmd">@commit</span> Show context in any chat</span>
+                <span class="search-hint">or just search by person, topic, keyword</span>
             </div>
         </div>
 
         <div id="find-container"></div>
 
         <div class="tab-bar">
-            <button class="tab active" onclick="switchTab('all', this)">All <span class="tab-count" id="count-all">0</span></button>
+            <button class="tab active" id="tab-today" onclick="switchTab('today', this)">Today</button>
+            <button class="tab" id="tab-open" onclick="switchTab('all', this)">Open <span class="tab-count" id="count-all">0</span></button>
             <button class="tab" onclick="switchTab('followups', this)">Follow ups <span class="tab-count" id="count-followups">0</span></button>
-            <button class="tab" onclick="switchTab('favorites', this)">Favorites <span class="tab-count" id="count-favorites">0</span></button>
-            <button class="tab" onclick="switchTab('you_owe', this)">I owe <span class="tab-count" id="count-you-owe">0</span></button>
-            <button class="tab" onclick="switchTab('they_owe', this)">They owe <span class="tab-count" id="count-they-owe">0</span></button>
-            <button class="tab" onclick="switchTab('resolved', this)">Resolved <span class="tab-count" id="count-resolved">0</span></button>
+            <button class="tab" id="tab-resolved" onclick="switchTab('resolved', this)">Resolved <span class="tab-count" id="count-resolved">0</span></button>
             <button class="tab" onclick="switchTab('stats', this)">Stats</button>
         </div>
 
@@ -2506,7 +2684,7 @@
             <div class="content-inner" id="commitments-container"></div>
         </div>
 
-        <div class="footer">v1.3.1 by <a href="https://x.com/miten" target="_blank" style="color: inherit; text-decoration: none;">MS Foundry</a></div>
+        <div class="footer">v1.3.2 by <a href="https://x.com/miten" target="_blank" style="color: inherit; text-decoration: none;">MS Foundry</a></div>
     </div>
 
     <!-- ══════ Settings Overlay ══════ -->
@@ -2544,6 +2722,8 @@
                 <div class="settings-row">
                     <span class="settings-row-label">Local generation model</span>
                     <select id="settings-model" onchange="updateModel()" style="font-size: 13px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface-sunken); color: var(--ink); font-family: inherit; cursor: pointer;">
+                        <option value="mlx-community/gemma-4-e2b-it-4bit">Gemma 4 E2B MLX 4-bit</option>
+                        <option value="mlx-community/gemma-4-e4b-it-4bit">Gemma 4 E4B MLX 4-bit</option>
                         <option value="mlx-community/gemma-4-12B-it-qat-4bit">Gemma 4 12B MLX QAT 4-bit</option>
                     </select>
                 </div>
@@ -2630,7 +2810,10 @@
 
     <script>
         const API = '';
-        let currentTab = 'all';
+        let currentTab = 'today';
+        let dirFilter = 'all';
+        let lastAutoResolved = [];
+        let lastStale = [];
         let allGroups = [];
         let favChats = {};
         let mutedChats = {};
@@ -2993,7 +3176,18 @@
                 container.innerHTML = '<div style="text-align:center;padding:60px 0;"><div class="connecting-spinner"></div><div style="font-size:13px;color:var(--ink-tertiary);margin-top:8px;">Loading...</div></div>';
             }
             try {
-                if (currentTab === 'stats') {
+                if (currentTab === 'today') {
+                    const [today, favView, stats] = await Promise.all([
+                        api('/api/today'),
+                        api('/api/favorites'),
+                        api('/api/commitments/stats')
+                    ]);
+                    favChats = favView.fav_chats || {};
+                    updateStats(stats);
+                    renderTodayView(today, favView, stats);
+                    dashboardLoaded = true;
+                    return;
+                } else if (currentTab === 'stats') {
                     const [detailedStats, stats] = await Promise.all([
                         api('/api/commitments/detailed-stats'),
                         api('/api/commitments/stats')
@@ -3010,14 +3204,6 @@
                     updateStats(stats);
                     renderFollowUps(followUps);
                     return;
-                } else if (currentTab === 'favorites') {
-                    const [favView, stats] = await Promise.all([
-                        api('/api/favorites'),
-                        api('/api/commitments/stats')
-                    ]);
-                    favChats = favView.fav_chats || {};
-                    updateStats(stats);
-                    renderFavoritesView(favView);
                 } else {
                     const isOpen = currentTab !== 'resolved';
                     const [groups, stats, favView, muted, autoResolved, stale] = await Promise.all([
@@ -3040,15 +3226,15 @@
             }
         }
 
+        let latestStats = null;
         function updateStats(stats) {
-            document.getElementById('count-all').textContent = stats.open;
-            document.getElementById('count-you-owe').textContent = stats.you_owe;
-            document.getElementById('count-they-owe').textContent = stats.they_owe;
-            document.getElementById('count-resolved').textContent = stats.resolved;
-            document.getElementById('count-favorites').textContent = stats.favorites;
-            document.getElementById('count-followups').textContent = stats.follow_ups;
-            document.getElementById('settings-commitments').textContent = stats.open + stats.resolved;
-            document.getElementById('settings-msgs').textContent = stats.processed_messages;
+            latestStats = stats;
+            const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+            set('count-all', stats.open);
+            set('count-resolved', stats.resolved);
+            set('count-followups', stats.follow_ups);
+            set('settings-commitments', stats.open + stats.resolved);
+            set('settings-msgs', stats.processed_messages);
         }
 
         function getInitials(name) {
@@ -3138,104 +3324,151 @@
             };
         }
 
+        // ── Today view ──
+        function todayCardHTML(item) {
+            const reason = item.reason || '';
+            const urgency = item.urgency || 'plain';
+            const person = item.person_name || item.chat_name || '';
+            return `<div class="commitment-card today-card ${urgency}" id="card-${escAttr(item.id)}">
+                <div class="commitment-top">
+                    <div class="commitment-body">
+                        <div class="commitment-title">${esc(item.title)}</div>
+                        <div class="today-meta">
+                            ${person ? `<span class="today-person">${esc(person)}</span><span class="today-meta-sep">&middot;</span>` : ''}
+                            <span class="today-reason ${urgency}">${esc(reason)}</span>
+                        </div>
+                    </div>
+                    <div class="commitment-actions">
+                        <button class="action-btn done" onclick="updateStatus('${escAttr(item.id)}','resolved')">Done</button>
+                        <button class="action-btn" onclick="snoozeCommitment('${escAttr(item.id)}')">Snooze</button>
+                        <button class="action-btn" onclick="showReply('${escAttr(item.id)}','${escAttr(item.chat_jid)}')">Reply</button>
+                        <button class="action-btn" onclick="toggleContext('${escAttr(item.id)}')">Context</button>
+                    </div>
+                </div>
+                <div class="reply-area hidden" id="reply-${escAttr(item.id)}"></div>
+                <div class="context-area hidden" id="context-${escAttr(item.id)}"></div>
+            </div>`;
+        }
+
+        function renderTodayView(today, favView, stats) {
+            const container = document.getElementById('commitments-container');
+            const items = today.items || [];
+
+            let html = '<div class="today-section-label">Act on today</div>';
+            if (items.length === 0) {
+                html += `<div class="today-empty">
+                    <div class="today-empty-title">Nothing urgent today</div>
+                    <div class="today-empty-sub">${stats.open} open items, none on fire. Commit is listening.</div>
+                </div>`;
+            } else {
+                html += '<div class="attention-section">';
+                for (const item of items) html += todayCardHTML(item);
+                html += '</div>';
+            }
+
+            const trustBits = [];
+            if (today.snoozed > 0) trustBits.push(`${today.snoozed} snoozed`);
+            if (today.auto_closed_week > 0) trustBits.push(`<a onclick="switchTab('resolved', document.getElementById('tab-resolved'))">Commit auto-closed ${today.auto_closed_week} this week</a>`);
+            if (trustBits.length > 0) html += `<div class="trust-line">${trustBits.join(' &middot; ')}</div>`;
+
+            const favGroups = (favView && favView.open) || [];
+            if (favGroups.length > 0) {
+                html += '<div class="today-section-label">Tracking</div><div class="fav-track-row">';
+                for (const g of favGroups) {
+                    const open = g.commitments.filter(c => c.status === 'open').length;
+                    const youOwe = g.commitments.filter(c => c.status === 'open' && c.direction === 'you_owe').length;
+                    const avatarClass = g.is_group ? 'fav-chip-avatar group' : 'fav-chip-avatar';
+                    const countClass = youOwe > 0 ? 'fav-chip-count has-owed' : 'fav-chip-count';
+                    html += `<div class="fav-chip" onclick="filterByPerson('${escAttr(g.name)}')">
+                        <div class="${avatarClass}">${getInitials(g.name)}</div>
+                        <span class="fav-chip-name">${esc(g.name)}</span>
+                        ${open > 0 ? `<span class="${countClass}">${open}</span>` : ''}
+                    </div>`;
+                }
+                html += '</div>';
+            }
+
+            html += `<div class="today-summary">
+                <button class="today-summary-cell" onclick="goOpenFiltered('you_owe')">
+                    <div class="today-summary-num">${stats.you_owe}</div>
+                    <div class="today-summary-label">you owe</div>
+                </button>
+                <button class="today-summary-cell" onclick="goOpenFiltered('they_owe')">
+                    <div class="today-summary-num">${stats.they_owe}</div>
+                    <div class="today-summary-label">they owe you</div>
+                </button>
+                <button class="today-summary-cell" onclick="switchTab('resolved', document.getElementById('tab-resolved'))">
+                    <div class="today-summary-num">${today.resolved_week || 0}</div>
+                    <div class="today-summary-label">resolved this week</div>
+                </button>
+            </div>`;
+
+            container.innerHTML = html;
+        }
+
+        async function snoozeCommitment(id) {
+            try {
+                await api('/api/commitments/snooze', {
+                    method: 'POST',
+                    body: JSON.stringify({ id: id, days: 7 })
+                });
+                const card = document.getElementById('card-' + id);
+                if (card) {
+                    card.style.transition = 'opacity 0.3s';
+                    card.style.opacity = '0.3';
+                    setTimeout(() => loadDashboard(), 350);
+                }
+            } catch (e) {
+                console.error('snooze error:', e);
+            }
+        }
+
+        function filterByPerson(name) {
+            switchTab('all', document.getElementById('tab-open'));
+            const input = document.getElementById('search-input');
+            input.value = name;
+            handleSearch();
+        }
+
+        function goOpenFiltered(dir) {
+            dirFilter = dir;
+            switchTab('all', document.getElementById('tab-open'));
+        }
+
+        function openFilterBarHTML() {
+            const s = latestStats || {};
+            const chips = [
+                ['all', `All${s.open != null ? ' ' + s.open : ''}`],
+                ['you_owe', `I owe${s.you_owe != null ? ' ' + s.you_owe : ''}`],
+                ['they_owe', `They owe${s.they_owe != null ? ' ' + s.they_owe : ''}`]
+            ];
+            return '<div class="open-filter-bar">' + chips.map(([key, label]) =>
+                `<button class="open-filter-chip ${dirFilter === key ? 'active' : ''}" onclick="setDirFilter('${key}')">${label}</button>`
+            ).join('') + '</div>';
+        }
+
+        function setDirFilter(f) {
+            dirFilter = f;
+            renderGroups(allGroups, lastAutoResolved, lastStale);
+            window.scrollTo(0, 0);
+        }
+
         function renderGroups(groups, autoResolved, stale) {
             const container = document.getElementById('commitments-container');
+            const isOpenTab = currentTab === 'all';
+            lastAutoResolved = autoResolved || [];
+            lastStale = stale || [];
+
             if (!groups || groups.length === 0) {
-                const isFiltered = currentTab === 'you_owe' || currentTab === 'they_owe';
-                container.innerHTML = `<div class="empty-state">
-                    <div class="empty-state-title">${isFiltered ? 'Nothing here' : 'All clear'}</div>
-                    <div class="empty-state-desc">${isFiltered ? 'No commitments match this filter.' : 'No open commitments. Commit is listening to your WhatsApp conversations.'}</div>
+                container.innerHTML = (isOpenTab && !isSearching ? openFilterBarHTML() : '') + `<div class="empty-state">
+                    <div class="empty-state-title">All clear</div>
+                    <div class="empty-state-desc">No open commitments. Commit is listening to your WhatsApp conversations.</div>
                 </div>`;
                 return;
             }
 
             let html = '';
-            const isOpenTab = currentTab === 'all' || currentTab === 'you_owe' || currentTab === 'they_owe';
-
-            if (isOpenTab && !isSearching) {
-                const allOpen = [];
-                for (const g of groups) {
-                    for (const c of g.commitments) {
-                        if (c.status === 'open') {
-                            c._personName = g.name;
-                            allOpen.push(c);
-                        }
-                    }
-                }
-
-                const buckets = bucketAttentionItems(allOpen);
-                const totalAttn = buckets.dropping.length + buckets.quiet.length + buckets.dying.length;
-
-                if (totalAttn > 0) {
-                    html += '<div class="attention-section">';
-                    html += '<div class="attention-label">Needs your attention</div>';
-
-                    function renderAttnCard(c, primaryLabel, primaryAction, secondaryLabel, secondaryAction) {
-                        const dirClass = c.direction === 'you_owe' ? 'you-owe' : 'they-owe';
-                        const dirLabel = c.direction === 'you_owe' ? 'You owe' : 'They owe';
-                        const age = commitmentAge(c.created_at);
-                        const personCtx = c._personName || c.person_name;
-                        return `<div class="commitment-card" data-direction="${dirClass}" id="card-${escAttr(c.id)}">
-                            <div class="commitment-top">
-                                <div class="commitment-body">
-                                    <div class="commitment-title">${esc(c.title)}</div>
-                                    <div class="commitment-context">${esc(personCtx)}</div>
-                                    <div class="commitment-meta">
-                                        <span class="commitment-direction ${dirClass}">${dirLabel}</span>
-                                        <span class="attn-reason ${c._reasonClass}">${esc(c._reason)}</span>
-                                        <span class="commitment-age ${age.cls}">${age.text}</span>
-                                    </div>
-                                </div>
-                                <div class="commitment-actions">
-                                    <button class="action-btn primary-action" onclick="${primaryAction}">${primaryLabel}</button>
-                                    <button class="action-btn" onclick="${secondaryAction}">${secondaryLabel}</button>
-                                </div>
-                            </div>
-                            <div class="reply-area hidden" id="reply-${escAttr(c.id)}"></div>
-                        </div>`;
-                    }
-
-                    if (buckets.dropping.length > 0) {
-                        html += `<div class="attention-bucket">
-                            <div class="bucket-header">
-                                <div class="bucket-icon drop"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
-                                <div class="bucket-title">You're about to drop the ball</div>
-                            </div>`;
-                        for (const c of buckets.dropping) {
-                            html += renderAttnCard(c, 'Reply', `showReply('${escAttr(c.id)}','${escAttr(c.chat_jid)}')`, 'Done', `updateStatus('${escAttr(c.id)}','resolved')`);
-                        }
-                        html += '</div>';
-                    }
-
-                    if (buckets.quiet.length > 0) {
-                        html += `<div class="attention-bucket">
-                            <div class="bucket-header">
-                                <div class="bucket-icon quiet"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="10" y1="15" x2="10" y2="15.01"/><line x1="14" y1="15" x2="14" y2="15.01"/><path d="M10 10V8"/><path d="M14 10V8"/></svg></div>
-                                <div class="bucket-title">They've gone quiet</div>
-                            </div>`;
-                        for (const c of buckets.quiet) {
-                            html += renderAttnCard(c, 'Nudge', `nudge('${escAttr(c.id)}','${escAttr(c.chat_jid)}')`, 'Done', `updateStatus('${escAttr(c.id)}','resolved')`);
-                        }
-                        html += '</div>';
-                    }
-
-                    if (buckets.dying.length > 0) {
-                        html += `<div class="attention-bucket">
-                            <div class="bucket-header">
-                                <div class="bucket-icon dark"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg></div>
-                                <div class="bucket-title">Dying in the dark</div>
-                            </div>`;
-                        for (const c of buckets.dying) {
-                            const primary = c.direction === 'you_owe' ? ['Reply', `showReply('${escAttr(c.id)}','${escAttr(c.chat_jid)}')`] : ['Nudge', `nudge('${escAttr(c.id)}','${escAttr(c.chat_jid)}')`];
-                            html += renderAttnCard(c, primary[0], primary[1], 'Archive', `updateStatus('${escAttr(c.id)}','dismissed')`);
-                        }
-                        html += '</div>';
-                    }
-
-                    html += '</div>';
-                    html += '<div class="people-label">By person</div>';
-                }
-            }
+            if (isOpenTab && !isSearching) html += openFilterBarHTML();
 
             html += renderGroupsHTML(groups);
 
@@ -3533,13 +3766,15 @@
                             ${c.context ? `<div class="commitment-context">${esc(c.context)}</div>` : ''}
                             ${c.source_quote ? `<div class="commitment-source">${chatSvg}<div class="source-text"><span class="source-quote">"${esc(c.source_quote)}"</span></div></div>` : ''}
                             <div class="commitment-actions followup-actions">
-                                <button class="action-btn" onclick="nudge('${escAttr(c.id)}','${escAttr(c.chat_jid)}')">Nudge</button>
                                 <button class="action-btn done" onclick="updateStatus('${escAttr(c.id)}','resolved')">Done</button>
-                                <button class="action-btn" onclick="updateStatus('${escAttr(c.id)}','dismissed')">Dismiss</button>
+                                <button class="action-btn" onclick="snoozeCommitment('${escAttr(c.id)}')">Snooze</button>
+                                <button class="action-btn" onclick="nudge('${escAttr(c.id)}','${escAttr(c.chat_jid)}')">Reply</button>
+                                <button class="action-btn" onclick="toggleContext('${escAttr(c.id)}')">Context</button>
                             </div>
                         </div>
                     </div>
                     <div class="nudge-area hidden" id="nudge-${escAttr(c.id)}"></div>
+                    <div class="context-area hidden" id="context-${escAttr(c.id)}"></div>
                 </div>`;
             }
             container.innerHTML = html;
@@ -3644,9 +3879,9 @@
             for (let gi = start; gi < groups.length && rendered < count; gi++) {
                 const group = groups[gi];
                 let filtered = group.commitments;
-                if (!isSearching) {
-                    if (currentTab === 'you_owe') filtered = filtered.filter(c => c.direction === 'you_owe');
-                    else if (currentTab === 'they_owe') filtered = filtered.filter(c => c.direction === 'they_owe');
+                if (!isSearching && currentTab === 'all') {
+                    if (dirFilter === 'you_owe') filtered = filtered.filter(c => c.direction === 'you_owe');
+                    else if (dirFilter === 'they_owe') filtered = filtered.filter(c => c.direction === 'they_owe');
                 }
                 const lowCount = filtered.filter(c => c.status === 'open' && (c.significance || 'medium') === 'low').length;
                 if (!showLowSignificance && !isSearching) {
@@ -3672,7 +3907,7 @@
                     if (resolvedCount > 0) parts.push(resolvedCount + ' closed');
                     metaText += parts.join(', ');
                 } else {
-                    metaText += filtered.length + ' open';
+                    metaText += filtered.length + (currentTab === 'resolved' ? ' resolved' : ' open');
                 }
 
                 html += `<div class="commitment-group" data-person="${escAttr(group.name.toLowerCase())}">
@@ -3733,9 +3968,9 @@
                             ${!isResolved ? `<button class="reminder-btn ${bellClass}" data-reminder-id="${escAttr(c.id)}">${bellSvg}</button>
                             <button class="favorite-btn ${starClass}" onclick="toggleFavorite('${escAttr(c.id)}')">${starSvg}</button>
                             <div class="commitment-actions">
-                                <button class="action-btn" onclick="showReply('${escAttr(c.id)}','${escAttr(c.chat_jid)}')">Reply</button>
                                 <button class="action-btn done" onclick="updateStatus('${escAttr(c.id)}','resolved')">Done</button>
-                                <button class="action-btn" onclick="updateStatus('${escAttr(c.id)}','dismissed')">Dismiss</button>
+                                <button class="action-btn" onclick="snoozeCommitment('${escAttr(c.id)}')">Snooze</button>
+                                <button class="action-btn" onclick="showReply('${escAttr(c.id)}','${escAttr(c.chat_jid)}')">Reply</button>
                                 <button class="action-btn" onclick="toggleContext('${escAttr(c.id)}')">Context</button>
                             </div>` : `<div class="commitment-actions" style="opacity:1;">
                                 <button class="action-btn" onclick="reopenCommitment('${escAttr(c.id)}')">Reopen</button>

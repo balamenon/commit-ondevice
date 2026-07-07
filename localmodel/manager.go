@@ -38,6 +38,7 @@ type Status struct {
 type Manager struct {
 	mu           sync.RWMutex
 	once         sync.Once
+	db           *store.DB
 	status       Status
 	models       []ModelStatus
 	serverCmd    *exec.Cmd
@@ -45,19 +46,92 @@ type Manager struct {
 	lastOutput   string
 }
 
-func NewManager() *Manager {
+func NewManager(db *store.DB) *Manager {
+	model := envOrDefault("COMMIT_LLM_MODEL", defaultModel(db))
+	draftModel := envOrDefault("COMMIT_LLM_DRAFT_MODEL", store.DefaultDraftModel)
+	embeddingModel := envOrDefault("COMMIT_EMBEDDING_MODEL", store.DefaultEmbeddingModel)
 	models := []ModelStatus{
-		{ID: envOrDefault("COMMIT_LLM_MODEL", store.DefaultModel), Label: "Gemma 4 12B", TotalBytes: 11 * 1024 * 1024 * 1024},
-		{ID: envOrDefault("COMMIT_LLM_DRAFT_MODEL", store.DefaultDraftModel), Label: "MTP draft model", TotalBytes: 270 * 1024 * 1024},
-		{ID: envOrDefault("COMMIT_EMBEDDING_MODEL", store.DefaultEmbeddingModel), Label: "EmbeddingGemma", TotalBytes: 213 * 1024 * 1024},
+		modelStatus(model),
 	}
-	m := &Manager{models: models}
+	if draftModel != "" && draftModel != "none" {
+		models = append(models, modelStatus(draftModel))
+	}
+	models = append(models, modelStatus(embeddingModel))
+	m := &Manager{db: db, models: models}
 	m.setStatus(func(s *Status) {
 		s.Phase = "idle"
 		s.Detail = "Preparing local models"
 		s.Models = m.snapshotModels()
 	})
 	return m
+}
+
+func defaultModel(db *store.DB) string {
+	if db == nil {
+		return store.DefaultModel
+	}
+	return db.GetModel()
+}
+
+func modelStatus(id string) ModelStatus {
+	return ModelStatus{
+		ID:         id,
+		Label:      modelLabel(id),
+		TotalBytes: estimatedModelBytes(id),
+	}
+}
+
+func modelLabel(id string) string {
+	lower := strings.ToLower(id)
+	switch {
+	case strings.Contains(lower, "embeddinggemma"):
+		return "EmbeddingGemma"
+	case strings.Contains(lower, "assistant") || strings.Contains(lower, "draft"):
+		return "MTP draft model"
+	case strings.Contains(lower, "gemma-4") && strings.Contains(lower, "e2b"):
+		return "Gemma 4 E2B"
+	case strings.Contains(lower, "gemma-4") && strings.Contains(lower, "e4b"):
+		return "Gemma 4 E4B"
+	case strings.Contains(lower, "gemma-3n") && strings.Contains(lower, "e2b"):
+		return "Gemma 3n E2B"
+	case strings.Contains(lower, "gemma-3n") && strings.Contains(lower, "e4b"):
+		return "Gemma 3n E4B"
+	case strings.Contains(lower, "12b"):
+		return "Gemma 4 12B"
+	}
+	parts := strings.Split(id, "/")
+	return parts[len(parts)-1]
+}
+
+func estimatedModelBytes(id string) int64 {
+	lower := strings.ToLower(id)
+	switch {
+	case id == "" || id == "none":
+		return 0
+	case strings.Contains(lower, "embeddinggemma"):
+		return mb(213)
+	case strings.Contains(lower, "assistant") || strings.Contains(lower, "draft"):
+		return mb(270)
+	case strings.Contains(lower, "gemma-4") && strings.Contains(lower, "e2b"):
+		return mb(3550)
+	case strings.Contains(lower, "gemma-4") && strings.Contains(lower, "e4b"):
+		return mb(5150)
+	case strings.Contains(lower, "gemma-3n") && strings.Contains(lower, "e2b"):
+		return mb(4000)
+	case strings.Contains(lower, "gemma-3n") && strings.Contains(lower, "e4b"):
+		return mb(5820)
+	case strings.Contains(lower, "12b"):
+		return gb(11)
+	}
+	return 0
+}
+
+func mb(n int64) int64 {
+	return n * 1000 * 1000
+}
+
+func gb(n int64) int64 {
+	return n * 1000 * 1000 * 1000
 }
 
 func (m *Manager) Start(ctx context.Context) {
@@ -173,12 +247,12 @@ func (m *Manager) ensureMLXVLM(ctx context.Context, pipxPath string) error {
 	if m.mlxVLMHealthy(ctx) {
 		return nil
 	}
-	m.setPhase("installing", "Installing Gemma 4 MLX runtime", "")
-	if err := m.runStatusCommand(ctx, "Installing Gemma 4 MLX runtime", pipxPath, "install", "--force", "mlx-vlm"); err != nil {
+	m.setPhase("installing", "Installing local MLX runtime", "")
+	if err := m.runStatusCommand(ctx, "Installing local MLX runtime", pipxPath, "install", "--force", "mlx-vlm"); err != nil {
 		return err
 	}
-	m.setPhase("installing", "Repairing Gemma 4 runtime dependencies", "")
-	if err := m.runStatusCommand(ctx, "Repairing Gemma 4 runtime dependencies", pipxPath,
+	m.setPhase("installing", "Repairing local MLX runtime dependencies", "")
+	if err := m.runStatusCommand(ctx, "Repairing local MLX runtime dependencies", pipxPath,
 		"inject", "--force", "mlx-vlm", "transformers>=5.5,<5.13", "huggingface_hub>=1.0"); err != nil {
 		return err
 	}
@@ -320,16 +394,15 @@ func (m *Manager) startServer(ctx context.Context) error {
 	}
 	serverPath := findExecutable("mlx_vlm.server")
 	if serverPath == "" {
-		return fmt.Errorf("Gemma 4 MLX runtime is not installed")
+		return fmt.Errorf("local MLX runtime is not installed")
 	}
 
-	cmd := exec.CommandContext(ctx, serverPath,
-		"--model", envOrDefault("COMMIT_LLM_MODEL", store.DefaultModel),
-		"--draft-model", envOrDefault("COMMIT_LLM_DRAFT_MODEL", store.DefaultDraftModel),
-		"--draft-kind", "mtp",
-		"--host", "127.0.0.1",
-		"--port", "8080",
-	)
+	args := []string{"--model", envOrDefault("COMMIT_LLM_MODEL", defaultModel(m.db))}
+	if draftModel := envOrDefault("COMMIT_LLM_DRAFT_MODEL", store.DefaultDraftModel); draftModel != "" && draftModel != "none" {
+		args = append(args, "--draft-model", draftModel, "--draft-kind", envOrDefault("COMMIT_LLM_DRAFT_KIND", "mtp"))
+	}
+	args = append(args, "--host", "127.0.0.1", "--port", "8080")
+	cmd := exec.CommandContext(ctx, serverPath, args...)
 	cmd.Env = os.Environ()
 	stdout, _ := cmd.StdoutPipe()
 	stderr, _ := cmd.StderrPipe()

@@ -10,6 +10,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
+	"strings"
 	"sync"
 
 	"golang.org/x/crypto/bcrypt"
@@ -19,9 +22,10 @@ import (
 )
 
 type DB struct {
-	conn      *sql.DB
-	cryptoMu  sync.RWMutex
-	cryptoKey []byte // derived from passcode, set after auth
+	conn         *sql.DB
+	cryptoMu     sync.RWMutex
+	cryptoKey    []byte // derived from passcode, set after auth
+	keyCachePath string // 0600 file caching the derived key across restarts
 }
 
 func Open(path string) (*DB, error) {
@@ -29,13 +33,41 @@ func Open(path string) (*DB, error) {
 	if err != nil {
 		return nil, fmt.Errorf("open db: %w", err)
 	}
-	db := &DB{conn: conn}
+	db := &DB{conn: conn, keyCachePath: filepath.Join(filepath.Dir(path), ".crypto_key")}
 	if err := db.migrate(); err != nil {
 		conn.Close()
 		return nil, fmt.Errorf("migrate: %w", err)
 	}
 	db.ensureMachineKey()
+	db.loadCachedKey()
 	return db, nil
+}
+
+// loadCachedKey restores the passcode-derived crypto key from disk so a
+// restart doesn't leave the API key undecryptable until the next web login.
+// Web sessions persist across restarts, so that login may never come.
+func (db *DB) loadCachedKey() {
+	if db.IsUnlocked() || db.keyCachePath == "" {
+		return
+	}
+	data, err := os.ReadFile(db.keyCachePath)
+	if err != nil {
+		return
+	}
+	key, err := hex.DecodeString(strings.TrimSpace(string(data)))
+	if err != nil || len(key) != 32 {
+		return
+	}
+	db.cryptoMu.Lock()
+	db.cryptoKey = key
+	db.cryptoMu.Unlock()
+}
+
+func (db *DB) cacheKey(key []byte) {
+	if db.keyCachePath == "" {
+		return
+	}
+	os.WriteFile(db.keyCachePath, []byte(hex.EncodeToString(key)), 0600)
 }
 
 func (db *DB) Close() error {
@@ -81,10 +113,11 @@ func (db *DB) migrate() error {
 			status      TEXT NOT NULL DEFAULT 'open' CHECK(status IN ('open', 'resolved', 'dismissed', 'snoozed')),
 			due_hint    TEXT NOT NULL DEFAULT '',
 			created_at  INTEGER NOT NULL,
-			resolved_at INTEGER,
-			is_group    INTEGER NOT NULL DEFAULT 0,
-			favorited   INTEGER NOT NULL DEFAULT 0
-		);
+				resolved_at INTEGER,
+				is_group    INTEGER NOT NULL DEFAULT 0,
+				favorited   INTEGER NOT NULL DEFAULT 0,
+				snoozed_flag INTEGER NOT NULL DEFAULT 0
+			);
 
 		CREATE INDEX IF NOT EXISTS idx_commitments_status ON commitments(status);
 		CREATE INDEX IF NOT EXISTS idx_commitments_person ON commitments(person_name);
@@ -130,9 +163,14 @@ func (db *DB) migrate() error {
 			UNIQUE(message_id, path)
 		);
 
-		CREATE INDEX IF NOT EXISTS idx_media_message ON media_assets(message_id);
-		CREATE INDEX IF NOT EXISTS idx_media_pending ON media_assets(described_at) WHERE described_at IS NULL;
-	`)
+			CREATE INDEX IF NOT EXISTS idx_media_message ON media_assets(message_id);
+			CREATE INDEX IF NOT EXISTS idx_media_pending ON media_assets(described_at) WHERE described_at IS NULL;
+
+			CREATE TABLE IF NOT EXISTS sessions (
+				token_hash TEXT PRIMARY KEY,
+				expires_at INTEGER NOT NULL
+			);
+		`)
 	if err != nil {
 		return err
 	}
@@ -170,6 +208,28 @@ func (db *DB) migrate() error {
 	}
 
 	if version < 6 {
+		// Distinguishes a silent snooze (resurfaces quietly when due) from a
+		// user-set reminder (pings the self-chat when due).
+		db.conn.Exec("ALTER TABLE commitments ADD COLUMN snoozed_flag INTEGER NOT NULL DEFAULT 0")
+	}
+
+	if version < 7 {
+		// Web sessions persist across restarts. Only the SHA-256 of the
+		// token is stored, so reading the DB can't impersonate a session.
+		db.conn.Exec(`CREATE TABLE IF NOT EXISTS sessions (
+			token_hash TEXT PRIMARY KEY,
+			expires_at INTEGER NOT NULL
+		)`)
+	}
+
+	if version < 8 {
+		// Compatibility for databases created by the on-device fork before
+		// upstream added snoozes and persistent sessions.
+		db.conn.Exec("ALTER TABLE commitments ADD COLUMN snoozed_flag INTEGER NOT NULL DEFAULT 0")
+		db.conn.Exec(`CREATE TABLE IF NOT EXISTS sessions (
+			token_hash TEXT PRIMARY KEY,
+			expires_at INTEGER NOT NULL
+		)`)
 		db.conn.Exec(`CREATE TABLE IF NOT EXISTS semantic_index (
 			id              TEXT PRIMARY KEY,
 			source_type     TEXT NOT NULL,
@@ -188,7 +248,7 @@ func (db *DB) migrate() error {
 		db.conn.Exec("CREATE INDEX IF NOT EXISTS idx_semantic_chat ON semantic_index(chat_jid, timestamp)")
 	}
 
-	if version < 7 {
+	if version < 9 {
 		db.conn.Exec(`CREATE TABLE IF NOT EXISTS media_assets (
 			id          TEXT PRIMARY KEY,
 			message_id  TEXT NOT NULL,
@@ -208,7 +268,7 @@ func (db *DB) migrate() error {
 		db.conn.Exec("CREATE INDEX IF NOT EXISTS idx_media_pending ON media_assets(described_at) WHERE described_at IS NULL")
 	}
 
-	db.setSchemaVersion(7)
+	db.setSchemaVersion(9)
 	return nil
 }
 
@@ -296,6 +356,7 @@ func (db *DB) deriveKey(passcode string) {
 	db.cryptoMu.Lock()
 	db.cryptoKey = key
 	db.cryptoMu.Unlock()
+	db.cacheKey(key)
 }
 
 func (db *DB) ensureMachineKey() {
@@ -381,9 +442,9 @@ func (db *DB) decrypt(stored string) (string, error) {
 
 // Model
 
-const DefaultModel = "mlx-community/gemma-4-12B-it-qat-4bit"
+const DefaultModel = "mlx-community/gemma-4-e2b-it-4bit"
 const FallbackModel = DefaultModel
-const DefaultDraftModel = "mlx-community/gemma-4-12B-it-qat-assistant-nvfp4"
+const DefaultDraftModel = "none"
 const DefaultEmbeddingModel = "mlx-community/embeddinggemma-300m-4bit"
 
 func (db *DB) GetModel() string {

@@ -193,6 +193,9 @@ func (e *Extractor) ProcessBatch(ctx context.Context) error {
 			if sig != "high" && sig != "medium" && sig != "low" {
 				sig = "medium"
 			}
+			if sig == "low" {
+				continue
+			}
 			c := &store.Commitment{
 				ChatJID:      chatJID,
 				ChatName:     chatMsgs[0].ChatName,
@@ -290,26 +293,29 @@ For each new commitment, return:
 - source_quote: the exact message text that contains the commitment
 - due_hint: any mentioned deadline or timeframe, converted to a concrete date/time if possible (e.g. "tomorrow" → "May 30", "by EOD" → "today evening"). Empty string if none
 - person_name: the name of the other person involved (must be a real identifiable name, not "Unknown")
-- significance: "high", "medium", or "low"
+- significance: "high" or "medium"
 
 SIGNIFICANCE LEVELS — be ruthlessly honest:
 - HIGH: Deliverables with named recipients and deadlines. Financial obligations. Legal/regulatory actions. Board-level decisions. Commitments to investors, partners, or senior stakeholders. Anything where dropping the ball has real consequences.
 - MEDIUM: Professional follow-ups with clear action items. Sharing specific documents or information. Meeting arrangements with business purpose. Introductions promised to specific people.
-- LOW: Everything else that technically qualifies as a commitment but is low-stakes. Social plans, vague "let's catch up" promises, micro-actions like "I'll ping you", routine operational minutiae.
 
 DO NOT EXTRACT — these are not commitments at all:
+- Low-stakes items: social plans, vague "let's catch up" promises, micro-actions like "I'll ping you", routine operational minutiae
 - Social pleasantries: "I'll come say hi", "let's catch up sometime", "will come soon", "see you there"
-- Conversational filler: "let me check", "I'll get back to you", "will do", "noted", "sure"
+- Conversational filler: "let me check", "I'll get back to you", "will do", "noted", "sure", "ok will do"
+- Callback promises: "I'll call you back", "will call you when I land", "call you in a bit", "will revert", "let me get back to you"
+- Vague agreements: "will do something", "will try", "will see", "will look into it", "will check"
 - Questions or requests without agreement: "can you...?", "would you mind...?"
 - Offers or suggestions without commitment: "I could...", "maybe we should..."
 - Greetings, reactions, emotional messages, thank-yous
 - Status updates or announcements without a promise to act
-- Vague intentions with no specific action: "we should think about this"
+- Vague intentions with no specific action: "we should think about this", "circle back on this"
 - Promises where the person is unknown/unidentifiable
-- Ephemeral micro-coordination: "I'll call you in 2 mins", "coming now", "on my way"
+- Ephemeral micro-coordination: "I'll call you in 2 mins", "coming now", "on my way", "reaching in 10"
+- Generic follow-ups with no specific deliverable: "will follow up", "will circle back", "will touch base"
 - Messages in any language follow the same rules
 
-The bar: if a commitment wouldn't survive a weekly priorities review, don't extract it. When in doubt, do NOT extract. An empty list is better than a noisy one.
+The bar: if a CEO wouldn't track this on a sticky note, don't extract it. When in doubt, do NOT extract. An empty list is better than a noisy one.
 
 2. AUTO-RESOLVE — this is critical. Check if ANY existing open commitments below have been fulfilled or made irrelevant. Be aggressive about detecting resolution:
 - The promised action was done (sent a doc, made a call, shared info, etc.)

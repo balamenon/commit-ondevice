@@ -732,12 +732,19 @@ func (db *DB) RecordNudge(id string) error {
 }
 
 func (db *DB) SetReminder(id string, at time.Time) error {
-	_, err := db.conn.Exec("UPDATE commitments SET reminder_at = ? WHERE id = ?", at.Unix(), id)
+	_, err := db.conn.Exec("UPDATE commitments SET reminder_at = ?, snoozed_flag = 0 WHERE id = ?", at.Unix(), id)
+	return err
+}
+
+// SetSnooze hides a commitment behind a future reminder without a self-chat
+// ping when it comes due — it just resurfaces quietly.
+func (db *DB) SetSnooze(id string, until time.Time) error {
+	_, err := db.conn.Exec("UPDATE commitments SET reminder_at = ?, snoozed_flag = 1 WHERE id = ?", until.Unix(), id)
 	return err
 }
 
 func (db *DB) ClearReminder(id string) error {
-	_, err := db.conn.Exec("UPDATE commitments SET reminder_at = NULL WHERE id = ?", id)
+	_, err := db.conn.Exec("UPDATE commitments SET reminder_at = NULL, snoozed_flag = 0 WHERE id = ?", id)
 	return err
 }
 
@@ -786,7 +793,7 @@ func (db *DB) GetDueReminders() ([]*Commitment, error) {
 		SELECT id, chat_jid, chat_name, person_name, person_jid, title, context, direction,
 			source_quote, source_time, message_id, status, due_hint, created_at, resolved_at, is_group, favorited, resolved_by, reminder_at, last_nudged_at, significance
 		FROM commitments
-		WHERE status = 'open' AND reminder_at IS NOT NULL AND reminder_at <= ?
+		WHERE status = 'open' AND reminder_at IS NOT NULL AND reminder_at <= ? AND snoozed_flag = 0
 		ORDER BY reminder_at ASC`, now)
 	if err != nil {
 		return nil, err
@@ -809,4 +816,100 @@ func (db *DB) GetStaleCommitments(daysOld int) ([]*Commitment, error) {
 	}
 	defer rows.Close()
 	return scanCommitments(rows)
+}
+
+// TodayCandidate is an open you_owe commitment enriched with activity signals
+// used by the Today scoring in the server layer.
+type TodayCandidate struct {
+	*Commitment
+	LastActivity *time.Time `json:"last_activity,omitempty"`
+	FavChat      bool       `json:"fav_chat"`
+}
+
+func (db *DB) GetTodayCandidates() ([]*TodayCandidate, error) {
+	now := time.Now().Unix()
+	rows, err := db.conn.Query(`
+		SELECT c.id, c.chat_jid, c.chat_name, c.person_name, c.person_jid, c.title, c.context, c.direction,
+			c.source_quote, c.source_time, c.message_id, c.status, c.due_hint, c.created_at, c.resolved_at,
+			c.is_group, c.favorited, c.resolved_by, c.reminder_at, c.last_nudged_at, c.significance,
+			(SELECT MAX(m.timestamp) FROM messages m WHERE m.chat_jid = c.chat_jid) AS last_activity,
+			EXISTS(SELECT 1 FROM favorite_chats f WHERE f.chat_jid = c.chat_jid) AS fav_chat
+		FROM commitments c
+		WHERE c.status = 'open' AND c.direction = 'you_owe'
+			AND (c.reminder_at IS NULL OR c.reminder_at <= ?)
+		ORDER BY c.created_at DESC
+		LIMIT 300`, now)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var out []*TodayCandidate
+	for rows.Next() {
+		c := &Commitment{}
+		var createdAt int64
+		var resolvedAt, reminderAt, lastNudgedAt, lastActivity *int64
+		var isGroup, favorited, favChat int
+		if err := rows.Scan(&c.ID, &c.ChatJID, &c.ChatName, &c.PersonName, &c.PersonJID,
+			&c.Title, &c.Context, &c.Direction, &c.SourceQuote, &c.SourceTime,
+			&c.MessageID, &c.Status, &c.DueHint, &createdAt, &resolvedAt, &isGroup, &favorited,
+			&c.ResolvedBy, &reminderAt, &lastNudgedAt, &c.Significance, &lastActivity, &favChat); err != nil {
+			return nil, err
+		}
+		c.CreatedAt = time.Unix(createdAt, 0)
+		if resolvedAt != nil {
+			t := time.Unix(*resolvedAt, 0)
+			c.ResolvedAt = &t
+		}
+		if reminderAt != nil {
+			t := time.Unix(*reminderAt, 0)
+			c.ReminderAt = &t
+		}
+		if lastNudgedAt != nil {
+			t := time.Unix(*lastNudgedAt, 0)
+			c.LastNudgedAt = &t
+		}
+		c.IsGroup = isGroup == 1
+		c.Favorited = favorited == 1
+		if c.ResolvedBy == "" {
+			c.ResolvedBy = "user"
+		}
+		if c.Significance == "" {
+			c.Significance = "medium"
+		}
+		tc := &TodayCandidate{Commitment: c, FavChat: favChat == 1}
+		if lastActivity != nil {
+			t := time.Unix(*lastActivity, 0)
+			tc.LastActivity = &t
+		}
+		out = append(out, tc)
+	}
+	return out, rows.Err()
+}
+
+// GetSnoozedCount returns open commitments hidden behind a future reminder.
+func (db *DB) GetSnoozedCount() (int, error) {
+	var n int
+	err := db.conn.QueryRow(
+		"SELECT COUNT(*) FROM commitments WHERE status = 'open' AND reminder_at > ?",
+		time.Now().Unix()).Scan(&n)
+	return n, err
+}
+
+// GetAutoResolvedCountSince returns commitments auto-closed after the cutoff.
+func (db *DB) GetAutoResolvedCountSince(since time.Time) (int, error) {
+	var n int
+	err := db.conn.QueryRow(
+		"SELECT COUNT(*) FROM commitments WHERE status = 'resolved' AND resolved_by = 'auto' AND resolved_at > ?",
+		since.Unix()).Scan(&n)
+	return n, err
+}
+
+// GetResolvedCountSince returns all commitments resolved after the cutoff.
+func (db *DB) GetResolvedCountSince(since time.Time) (int, error) {
+	var n int
+	err := db.conn.QueryRow(
+		"SELECT COUNT(*) FROM commitments WHERE status = 'resolved' AND resolved_at > ?",
+		since.Unix()).Scan(&n)
+	return n, err
 }

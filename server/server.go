@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"embed"
 	"encoding/hex"
 	"encoding/json"
@@ -24,7 +25,7 @@ import (
 	waTypes "go.mau.fi/whatsmeow/types"
 )
 
-const AppVersion = "1.3.0"
+const AppVersion = "1.3.2"
 
 //go:embed static
 var staticFS embed.FS
@@ -36,7 +37,6 @@ type Server struct {
 	port          int
 	mux           *http.ServeMux
 	modelRuntime  *localmodel.Manager
-	sessions      sync.Map // token -> expiry time
 	startedAt     time.Time
 	loginAttempts sync.Map // ip -> *loginThrottle
 }
@@ -149,6 +149,8 @@ func (s *Server) registerRoutes() {
 	s.mux.HandleFunc("/api/debug", s.requireAuth(s.handleDebug))
 	s.mux.HandleFunc("/api/find", s.requireAuth(s.handleFind))
 	s.mux.HandleFunc("/api/commitments/context", s.requireAuth(s.handleCommitmentContext))
+	s.mux.HandleFunc("/api/today", s.requireAuth(s.handleToday))
+	s.mux.HandleFunc("/api/commitments/snooze", s.requireAuth(s.handleSnooze))
 	s.mux.HandleFunc("/api/resolution-sweep", s.handleResolutionSweep)
 	s.mux.HandleFunc("/api/logout", s.requireAuth(s.handleLogout))
 }
@@ -159,8 +161,15 @@ func (s *Server) generateSession() string {
 		panic("crypto/rand failed: " + err.Error())
 	}
 	token := hex.EncodeToString(b)
-	s.sessions.Store(token, time.Now().Add(24*time.Hour))
+	if err := s.db.SaveSession(hashToken(token), time.Now().Add(30*24*time.Hour)); err != nil {
+		log.Printf("save session error: %v", err)
+	}
 	return token
+}
+
+func hashToken(token string) string {
+	sum := sha256.Sum256([]byte(token))
+	return hex.EncodeToString(sum[:])
 }
 
 func (s *Server) sessionCookie(token string, r *http.Request) *http.Cookie {
@@ -186,11 +195,7 @@ func (s *Server) requireAuth(next http.HandlerFunc) http.HandlerFunc {
 			http.Error(w, "unauthorized", 401)
 			return
 		}
-		expiry, ok := s.sessions.Load(cookie.Value)
-		if !ok || time.Now().After(expiry.(time.Time)) {
-			if ok {
-				s.sessions.Delete(cookie.Value)
-			}
+		if !s.db.SessionValid(hashToken(cookie.Value)) {
 			http.Error(w, "unauthorized", 401)
 			return
 		}
@@ -203,9 +208,7 @@ func (s *Server) handleAuthCheck(w http.ResponseWriter, r *http.Request) {
 	authenticated := false
 	if hasPasscode {
 		if cookie, err := r.Cookie("commit_session"); err == nil {
-			if expiry, ok := s.sessions.Load(cookie.Value); ok {
-				authenticated = time.Now().Before(expiry.(time.Time))
-			}
+			authenticated = s.db.SessionValid(hashToken(cookie.Value))
 		}
 	} else {
 		authenticated = true
