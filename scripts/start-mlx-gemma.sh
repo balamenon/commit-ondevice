@@ -2,7 +2,7 @@
 set -euo pipefail
 
 export COMMIT_LLM_BASE_URL="${COMMIT_LLM_BASE_URL:-http://127.0.0.1:8080/v1}"
-export COMMIT_EMBEDDING_BASE_URL="${COMMIT_EMBEDDING_BASE_URL:-$COMMIT_LLM_BASE_URL}"
+export COMMIT_EMBEDDING_BASE_URL="${COMMIT_EMBEDDING_BASE_URL:-http://127.0.0.1:8081/v1}"
 export COMMIT_LLM_DRAFT_MODEL="${COMMIT_LLM_DRAFT_MODEL:-none}"
 export COMMIT_LLM_NUM_DRAFT_TOKENS="${COMMIT_LLM_NUM_DRAFT_TOKENS:-3}"
 
@@ -75,6 +75,16 @@ download_model() {
   fi
 }
 
+pipx_python_args() {
+  for py in python3.13 python3.12 python3.11 /opt/homebrew/bin/python3.13 /opt/homebrew/bin/python3.12 /opt/homebrew/bin/python3.11 /usr/local/bin/python3.13 /usr/local/bin/python3.12 /usr/local/bin/python3.11; do
+    if command -v "$py" >/dev/null 2>&1 || [[ -x "$py" ]]; then
+      echo --python "$py" --fetch-python missing
+      return
+    fi
+  done
+  echo --python 3.13 --fetch-python missing
+}
+
 find_mlx_server() {
   if command -v mlx_vlm.server >/dev/null 2>&1; then
     command -v mlx_vlm.server
@@ -83,8 +93,8 @@ find_mlx_server() {
   else
     if command -v pipx >/dev/null 2>&1; then
       echo "Installing Gemma 4 MLX runtime..."
-      pipx install --force mlx-vlm
-      pipx inject --force mlx-vlm 'transformers>=5.5,<5.13' 'huggingface_hub>=1.0'
+      pipx install $(pipx_python_args) --force mlx-vlm
+      pipx inject --force mlx-vlm 'transformers==5.5.0' 'huggingface_hub>=1.0' torch torchvision
     else
       echo "Missing MLX server. Install pipx or run: pipx install mlx-vlm" >&2
       return 1
@@ -99,8 +109,32 @@ find_mlx_server() {
 
 repair_mlx_vlm() {
   if command -v pipx >/dev/null 2>&1; then
-    pipx inject --force mlx-vlm 'transformers>=5.5,<5.13' 'huggingface_hub>=1.0' >/dev/null
+    pipx inject --force mlx-vlm 'transformers==5.5.0' 'huggingface_hub>=1.0' >/dev/null
+    pipx inject --force mlx-vlm torch torchvision >/dev/null
   fi
+}
+
+ensure_embedding_runtime() {
+  local python="$1"
+  if "$python" -c 'import fastapi, uvicorn, mlx_embeddings' >/dev/null 2>&1; then
+    return
+  fi
+  if command -v pipx >/dev/null 2>&1; then
+    echo "Installing EmbeddingGemma MLX runtime..."
+    pipx inject --force mlx-vlm mlx-embeddings fastapi uvicorn
+  else
+    echo "Missing embedding runtime. Install pipx or run: pipx inject mlx-vlm mlx-embeddings fastapi uvicorn" >&2
+    return 1
+  fi
+  "$python" -c 'import fastapi, uvicorn, mlx_embeddings' >/dev/null
+}
+
+mlx_vlm_python() {
+  if [[ -x "$HOME/.local/pipx/venvs/mlx-vlm/bin/python" ]]; then
+    echo "$HOME/.local/pipx/venvs/mlx-vlm/bin/python"
+    return
+  fi
+  command -v python3
 }
 
 ensure_mlx_server_healthy() {
@@ -119,7 +153,7 @@ ensure_hf_cli() {
   fi
   if command -v pipx >/dev/null 2>&1; then
     echo "Installing Hugging Face downloader..."
-    pipx install 'huggingface-hub[hf_xet]'
+    pipx install $(pipx_python_args) 'huggingface-hub[hf_xet]'
   else
     echo "Missing Hugging Face CLI. Install pipx or run: pipx install 'huggingface-hub[hf_xet]'" >&2
     return 1
@@ -131,7 +165,8 @@ Starting MLX server for Commit
   generation model: $MODEL
   MTP draft model:  ${COMMIT_LLM_DRAFT_MODEL}
   embedding model:  $EMBEDDING_MODEL
-  endpoint:         $COMMIT_LLM_BASE_URL
+  chat endpoint:    $COMMIT_LLM_BASE_URL
+  embedding endpoint: $COMMIT_EMBEDDING_BASE_URL
 
 Leave this terminal open while Commit is running.
 EOF
@@ -144,10 +179,19 @@ download_model "$EMBEDDING_MODEL"
 
 MLX_SERVER="$(find_mlx_server)"
 ensure_mlx_server_healthy "$MLX_SERVER"
+EMBEDDING_PYTHON="$(mlx_vlm_python)"
+ensure_embedding_runtime "$EMBEDDING_PYTHON"
 
 ARGS=(--model "$MODEL" --host 127.0.0.1 --port 8080)
 if [[ -n "$COMMIT_LLM_DRAFT_MODEL" && "$COMMIT_LLM_DRAFT_MODEL" != "none" ]]; then
   ARGS+=(--draft-model "$COMMIT_LLM_DRAFT_MODEL" --draft-kind mtp)
 fi
+
+"$EMBEDDING_PYTHON" "$(dirname "$0")/embedding_server.py" \
+  --model "$EMBEDDING_MODEL" \
+  --host 127.0.0.1 \
+  --port 8081 &
+EMBEDDING_PID="$!"
+trap 'kill "$EMBEDDING_PID" 2>/dev/null || true' EXIT
 
 exec "$MLX_SERVER" "${ARGS[@]}"

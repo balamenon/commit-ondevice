@@ -15,6 +15,7 @@ import (
 )
 
 const defaultLocalLLMBaseURL = "http://127.0.0.1:8080/v1"
+const defaultLocalEmbeddingBaseURL = "http://127.0.0.1:8081/v1"
 
 type localLLMRequest struct {
 	Model          string            `json:"model,omitempty"`
@@ -183,7 +184,7 @@ func CallLocalEmbeddings(ctx context.Context, model string, input []string) ([][
 
 	baseURL := strings.TrimRight(os.Getenv("COMMIT_EMBEDDING_BASE_URL"), "/")
 	if baseURL == "" {
-		baseURL = LocalLLMBaseURL()
+		baseURL = defaultLocalEmbeddingBaseURL
 	}
 	req, err := http.NewRequestWithContext(ctx, "POST", baseURL+"/embeddings", bytes.NewReader(body))
 	if err != nil {

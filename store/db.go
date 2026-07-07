@@ -447,7 +447,7 @@ const Gemma4E4BModel = "mlx-community/gemma-4-e4b-it-4bit"
 const Gemma412BModel = "mlx-community/gemma-4-12B-it-qat-4bit"
 const Gemma412BDraftModel = "mlx-community/gemma-4-12B-it-qat-assistant-nvfp4"
 
-const DefaultModel = Gemma4E2BModel
+const DefaultModel = Gemma412BModel
 const FallbackModel = DefaultModel
 const DefaultDraftModel = "none"
 const DefaultEmbeddingModel = "mlx-community/embeddinggemma-300m-4bit"

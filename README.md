@@ -31,7 +31,7 @@ The dashboard shows everything grouped by person: what you owe, what they owe, h
 
 - **macOS** 12 Monterey or later on Apple Silicon
 - MLX model serving with an OpenAI-compatible `/v1/chat/completions` endpoint
-- An OpenAI-compatible `/v1/embeddings` endpoint backed by EmbeddingGemma
+- Commit starts its own local OpenAI-compatible `/v1/embeddings` endpoint backed by EmbeddingGemma
 - WhatsApp account with multi-device support
 
 ## Install
@@ -59,14 +59,15 @@ go build -o commit .
 
 Commit defaults to:
 
-- Generation: `mlx-community/gemma-4-e2b-it-4bit`
-- MTP draft model: disabled by default (`COMMIT_LLM_DRAFT_MODEL=none`)
+- Generation: `mlx-community/gemma-4-12B-it-qat-4bit`
+- MTP draft model: `mlx-community/gemma-4-12B-it-qat-assistant-nvfp4`
 - Embeddings: `mlx-community/embeddinggemma-300m-4bit`
-- Endpoint: `http://127.0.0.1:8080/v1`
+- Chat endpoint: `http://127.0.0.1:8080/v1`
+- Embedding endpoint: `http://127.0.0.1:8081/v1`
 
-This release includes two smaller local generation options for Apple Silicon:
+This release includes two smaller local generation options for Apple Silicon. They remain selectable from the app, but the 12B MTP model is the default because the current MLX VLM loader can reject the E2B/E4B audio-tower weights on some installs:
 
-- `mlx-community/gemma-4-e2b-it-4bit` — default efficient mode for the lowest steady-state footprint
+- `mlx-community/gemma-4-e2b-it-4bit` — efficient mode for the lowest steady-state footprint when supported by the installed MLX loader
 - `mlx-community/gemma-4-e4b-it-4bit` — balanced mode for more capacity while staying much smaller than 12B
 
 On first run, Commit checks the standard Hugging Face cache and downloads these repos with `hf download` or `huggingface-cli download` if they are missing. Install the Hugging Face Hub CLI with `pipx` first:
@@ -76,15 +77,15 @@ brew install pipx
 pipx install "huggingface-hub[hf_xet]"
 ```
 
-Commit shows dependency/model download status in the setup screen, repairs the local Gemma runtime when needed, then starts `mlx_vlm.server` automatically when the cache is ready. The bundled `scripts/start-mlx-gemma.sh` remains available for debugging, but normal users should not need a terminal.
+Commit shows dependency/model download status in the setup screen, repairs the local Gemma runtime when needed, then starts `mlx_vlm.server` for chat on port `8080` and a bundled EmbeddingGemma server for semantic search on port `8081`. The bundled `scripts/start-mlx-gemma.sh` remains available for debugging, but normal users should not need a terminal.
 
 Environment overrides:
 
 ```bash
 COMMIT_LLM_BASE_URL=http://127.0.0.1:8080/v1
-COMMIT_EMBEDDING_BASE_URL=http://127.0.0.1:8080/v1
-COMMIT_LLM_MODEL=mlx-community/gemma-4-e2b-it-4bit
-COMMIT_LLM_DRAFT_MODEL=none
+COMMIT_EMBEDDING_BASE_URL=http://127.0.0.1:8081/v1
+COMMIT_LLM_MODEL=mlx-community/gemma-4-12B-it-qat-4bit
+COMMIT_LLM_DRAFT_MODEL=mlx-community/gemma-4-12B-it-qat-assistant-nvfp4
 COMMIT_EMBEDDING_MODEL=mlx-community/embeddinggemma-300m-4bit
 ```
 

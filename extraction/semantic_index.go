@@ -48,7 +48,7 @@ Return 3-6 concise sentences. Do not speculate beyond what is visible.`
 		if err := e.db.SetMediaDescription(asset.ID, description); err != nil {
 			log.Printf("media description save failed for %s: %v", asset.ID, err)
 		}
-		vectors, err := CallLocalEmbeddings(ctx, embeddingModel, []string{description})
+		vectors, err := CallLocalEmbeddings(ctx, embeddingModel, []string{"search_document: " + description})
 		if err != nil {
 			return err
 		}
@@ -84,7 +84,7 @@ func (e *Extractor) indexMessages(ctx context.Context, msgs []*store.Message) er
 			if text == "" {
 				continue
 			}
-			inputs = append(inputs, text)
+			inputs = append(inputs, "search_document: "+text)
 			docs = append(docs, &store.SemanticDocument{
 				SourceType: "message",
 				SourceID:   m.ID,

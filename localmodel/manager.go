@@ -49,16 +49,18 @@ type ModelOption struct {
 }
 
 type Manager struct {
-	mu           sync.RWMutex
-	once         sync.Once
-	db           *store.DB
-	cancel       context.CancelFunc
-	runDone      chan struct{}
-	status       Status
-	models       []ModelStatus
-	serverCmd    *exec.Cmd
-	serverExited bool
-	lastOutput   string
+	mu              sync.RWMutex
+	once            sync.Once
+	db              *store.DB
+	cancel          context.CancelFunc
+	runDone         chan struct{}
+	status          Status
+	models          []ModelStatus
+	serverCmd       *exec.Cmd
+	embeddingCmd    *exec.Cmd
+	serverExited    bool
+	embeddingExited bool
+	lastOutput      string
 }
 
 func ModelOptions() []ModelOption {
@@ -208,7 +210,10 @@ func (m *Manager) Stop() {
 	m.runDone = nil
 	cmd := m.serverCmd
 	m.serverCmd = nil
+	embeddingCmd := m.embeddingCmd
+	m.embeddingCmd = nil
 	m.serverExited = true
+	m.embeddingExited = true
 	m.status.ServerRunning = false
 	m.status.ServerPID = 0
 	m.mu.Unlock()
@@ -229,6 +234,14 @@ func (m *Manager) Stop() {
 		}()
 	} else {
 		stopExternalServerOnPort("8080")
+	}
+	if embeddingCmd != nil && embeddingCmd.Process != nil {
+		go func() {
+			time.Sleep(2 * time.Second)
+			_ = embeddingCmd.Process.Kill()
+		}()
+	} else {
+		stopExternalServerOnPort("8081")
 	}
 	m.setPhase("stopped", "Local model server is stopped", "")
 }
@@ -337,6 +350,15 @@ func (m *Manager) run(ctx context.Context) {
 		}
 	}
 
+	m.setPhase("starting_embeddings", "Starting local embedding server", "")
+	if err := m.startEmbeddingServer(ctx); err != nil {
+		if ctx.Err() != nil {
+			m.setPhase("stopped", "Local model server is stopped", "")
+			return
+		}
+		m.setPhase("error", "Local embedding server failed to start", err.Error())
+		return
+	}
 	m.setPhase("starting_server", "Starting local Gemma server", "")
 	if err := m.startServer(ctx); err != nil {
 		if ctx.Err() != nil {
@@ -346,7 +368,7 @@ func (m *Manager) run(ctx context.Context) {
 		m.setPhase("error", "Local Gemma server failed to start", err.Error())
 		return
 	}
-	m.setPhase("ready", "Local Gemma is ready", "")
+	m.setPhase("ready", "Local Gemma and embeddings are ready", "")
 	m.setStatus(func(s *Status) {
 		s.Ready = true
 	})
@@ -361,6 +383,9 @@ func (m *Manager) ensureRuntime(ctx context.Context) error {
 		return err
 	}
 	if err := m.ensureMLXVLM(ctx, pipxPath); err != nil {
+		return err
+	}
+	if err := m.ensureEmbeddingRuntime(ctx, pipxPath); err != nil {
 		return err
 	}
 	return nil
@@ -389,24 +414,40 @@ func (m *Manager) ensureHuggingFaceCLI(ctx context.Context, pipxPath string) err
 		return nil
 	}
 	m.setPhase("installing", "Installing Hugging Face downloader", "")
-	return m.runStatusCommand(ctx, "Installing Hugging Face downloader", pipxPath, "install", "huggingface-hub[hf_xet]")
+	return m.runStatusCommand(ctx, "Installing Hugging Face downloader", pipxPath, pipxInstallArgs("huggingface-hub[hf_xet]")...)
 }
 
 func (m *Manager) ensureMLXVLM(ctx context.Context, pipxPath string) error {
-	if m.mlxVLMHealthy(ctx) {
-		return nil
+	if !m.mlxVLMHealthy(ctx) {
+		m.setPhase("installing", "Installing local MLX runtime", "")
+		if err := m.runStatusCommand(ctx, "Installing local MLX runtime", pipxPath, pipxInstallArgs("--force", "mlx-vlm")...); err != nil {
+			return err
+		}
 	}
-	m.setPhase("installing", "Installing local MLX runtime", "")
-	if err := m.runStatusCommand(ctx, "Installing local MLX runtime", pipxPath, "install", "--force", "mlx-vlm"); err != nil {
-		return err
-	}
-	m.setPhase("installing", "Repairing local MLX runtime dependencies", "")
-	if err := m.runStatusCommand(ctx, "Repairing local MLX runtime dependencies", pipxPath,
-		"inject", "--force", "mlx-vlm", "transformers>=5.5,<5.13", "huggingface_hub>=1.0"); err != nil {
-		return err
+	if !m.mlxVLMDependenciesHealthy(ctx) {
+		m.setPhase("installing", "Repairing local MLX runtime dependencies", "")
+		if err := m.runStatusCommand(ctx, "Repairing local MLX runtime dependencies", pipxPath,
+			"inject", "--force", "mlx-vlm", "transformers==5.5.0", "huggingface_hub>=1.0", "torch", "torchvision"); err != nil {
+			return err
+		}
 	}
 	if !m.mlxVLMHealthy(ctx) {
 		return fmt.Errorf("mlx_vlm.server is installed but failed its startup check: %s", m.lastOutput)
+	}
+	return nil
+}
+
+func (m *Manager) ensureEmbeddingRuntime(ctx context.Context, pipxPath string) error {
+	if m.embeddingRuntimeHealthy(ctx) {
+		return nil
+	}
+	m.setPhase("installing", "Installing local embedding runtime", "")
+	if err := m.runStatusCommand(ctx, "Installing local embedding runtime", pipxPath,
+		"inject", "--force", "mlx-vlm", "mlx-embeddings", "fastapi", "uvicorn"); err != nil {
+		return err
+	}
+	if !m.embeddingRuntimeHealthy(ctx) {
+		return fmt.Errorf("local embedding runtime is installed but failed its startup check: %s", m.lastOutput)
 	}
 	return nil
 }
@@ -422,6 +463,65 @@ func (m *Manager) mlxVLMHealthy(ctx context.Context) bool {
 	out, err := cmd.CombinedOutput()
 	m.rememberOutput(string(out))
 	return err == nil
+}
+
+func (m *Manager) mlxVLMDependenciesHealthy(ctx context.Context) bool {
+	pythonPath := mlxVLMVenvPython()
+	if pythonPath == "" {
+		return false
+	}
+	cmdCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	script := `import importlib.metadata as md
+import torch, torchvision
+version = md.version("transformers")
+raise SystemExit(0 if version == "5.5.0" else 1)
+`
+	cmd := exec.CommandContext(cmdCtx, pythonPath, "-c", script)
+	out, err := cmd.CombinedOutput()
+	m.rememberOutput(string(out))
+	return err == nil
+}
+
+func (m *Manager) embeddingRuntimeHealthy(ctx context.Context) bool {
+	pythonPath := mlxVLMVenvPython()
+	if pythonPath == "" {
+		return false
+	}
+	cmdCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	cmd := exec.CommandContext(cmdCtx, pythonPath, "-c", "import fastapi, uvicorn, mlx_embeddings")
+	out, err := cmd.CombinedOutput()
+	m.rememberOutput(string(out))
+	return err == nil
+}
+
+func pipxInstallArgs(extra ...string) []string {
+	args := []string{"install"}
+	if python := preferredPipxPython(); python != "" {
+		args = append(args, "--python", python, "--fetch-python", "missing")
+	}
+	return append(args, extra...)
+}
+
+func preferredPipxPython() string {
+	candidates := []string{
+		"python3.13",
+		"python3.12",
+		"python3.11",
+		"/opt/homebrew/bin/python3.13",
+		"/opt/homebrew/bin/python3.12",
+		"/opt/homebrew/bin/python3.11",
+		"/usr/local/bin/python3.13",
+		"/usr/local/bin/python3.12",
+		"/usr/local/bin/python3.11",
+	}
+	for _, candidate := range candidates {
+		if path := findExecutable(candidate); path != "" {
+			return path
+		}
+	}
+	return "3.13"
 }
 
 func (m *Manager) runStatusCommand(ctx context.Context, detail, name string, args ...string) error {
@@ -664,6 +764,144 @@ func localChatHealthCheck(ctx context.Context, model string) error {
 	return nil
 }
 
+func (m *Manager) startEmbeddingServer(ctx context.Context) error {
+	embeddingModel := envOrDefault("COMMIT_EMBEDDING_MODEL", store.DefaultEmbeddingModel)
+	if tcpReachable("127.0.0.1:8081") {
+		if err := localEmbeddingHealthCheck(ctx, embeddingModel); err == nil {
+			return nil
+		} else {
+			m.rememberOutput(err.Error())
+			m.setPhase("starting_embeddings", "Restarting unresponsive local embedding server", err.Error())
+			stopExternalServerOnPort("8081")
+			deadline := time.Now().Add(10 * time.Second)
+			for tcpReachable("127.0.0.1:8081") && time.Now().Before(deadline) {
+				select {
+				case <-ctx.Done():
+					return ctx.Err()
+				case <-time.After(250 * time.Millisecond):
+				}
+			}
+			if tcpReachable("127.0.0.1:8081") {
+				return fmt.Errorf("local embedding server is unhealthy and could not be restarted: %w", err)
+			}
+		}
+	}
+
+	pythonPath := mlxVLMVenvPython()
+	if pythonPath == "" {
+		return fmt.Errorf("local embedding runtime is not installed")
+	}
+	scriptPath := embeddingServerScriptPath()
+	if scriptPath == "" {
+		return fmt.Errorf("embedding server script is missing")
+	}
+
+	args := []string{
+		scriptPath,
+		"--host", "127.0.0.1",
+		"--port", "8081",
+		"--model", embeddingModel,
+	}
+	cmd := exec.CommandContext(ctx, pythonPath, args...)
+	cmd.Env = os.Environ()
+	stdout, _ := cmd.StdoutPipe()
+	stderr, _ := cmd.StderrPipe()
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+
+	m.mu.Lock()
+	m.embeddingCmd = cmd
+	m.embeddingExited = false
+	m.mu.Unlock()
+
+	go m.logPipe("mlx-embeddings", stdout)
+	go m.logPipe("mlx-embeddings", stderr)
+
+	done := make(chan error, 1)
+	go func() {
+		err := cmd.Wait()
+		m.mu.Lock()
+		m.embeddingExited = true
+		if err != nil && m.status.Phase != "ready" {
+			m.status.Error = strings.TrimSpace(err.Error() + ": " + m.lastOutput)
+		}
+		m.mu.Unlock()
+		done <- err
+	}()
+
+	deadline := time.Now().Add(10 * time.Minute)
+	var lastHealthErr error
+	for time.Now().Before(deadline) {
+		if tcpReachable("127.0.0.1:8081") {
+			if err := localEmbeddingHealthCheck(ctx, embeddingModel); err == nil {
+				return nil
+			} else {
+				lastHealthErr = err
+				m.rememberOutput(err.Error())
+				m.setStatus(func(s *Status) {
+					s.Detail = "Waiting for EmbeddingGemma to finish loading"
+					s.Error = err.Error()
+				})
+			}
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case err := <-done:
+			if err != nil {
+				return fmt.Errorf("%w: %s", err, m.lastOutput)
+			}
+			return fmt.Errorf("embedding server exited before embeddings became reachable")
+		case <-time.After(2 * time.Second):
+		}
+	}
+	if lastHealthErr != nil {
+		return fmt.Errorf("timed out waiting for local embedding health check: %w", lastHealthErr)
+	}
+	return fmt.Errorf("timed out waiting for embedding server on 127.0.0.1:8081")
+}
+
+func localEmbeddingHealthCheck(ctx context.Context, model string) error {
+	body, err := json.Marshal(map[string]any{
+		"model": model,
+		"input": []string{"embedding health check"},
+	})
+	if err != nil {
+		return err
+	}
+	reqCtx, cancel := context.WithTimeout(ctx, 20*time.Second)
+	defer cancel()
+	req, err := http.NewRequestWithContext(reqCtx, "POST", "http://127.0.0.1:8081/v1/embeddings", bytes.NewReader(body))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 1200))
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("local embedding health check failed with HTTP %d: %s", resp.StatusCode, strings.TrimSpace(string(respBody)))
+	}
+	var parsed embeddingHealthResponse
+	if err := json.Unmarshal(respBody, &parsed); err != nil {
+		return fmt.Errorf("parse embedding health response: %w", err)
+	}
+	if len(parsed.Data) == 0 || len(parsed.Data[0].Embedding) == 0 {
+		return fmt.Errorf("local embedding health check returned no vector")
+	}
+	return nil
+}
+
+type embeddingHealthResponse struct {
+	Data []struct {
+		Embedding []float64 `json:"embedding"`
+	} `json:"data"`
+}
+
 func stopExternalServerOnPort(port string) {
 	pids, err := listeningPIDs(port)
 	if err != nil {
@@ -675,7 +913,7 @@ func stopExternalServerOnPort(port string) {
 			continue
 		}
 		command := string(cmdline)
-		if !strings.Contains(command, "mlx_vlm.server") && !strings.Contains(command, "mlx_lm.server") {
+		if !strings.Contains(command, "mlx_vlm.server") && !strings.Contains(command, "mlx_lm.server") && !strings.Contains(command, "embedding_server.py") {
 			continue
 		}
 		if proc, err := os.FindProcess(pid); err == nil {
@@ -808,6 +1046,53 @@ func findExecutable(name string) string {
 	}
 	for _, candidate := range candidates {
 		if info, err := os.Stat(candidate); err == nil && !info.IsDir() && info.Mode()&0111 != 0 {
+			return candidate
+		}
+	}
+	return ""
+}
+
+func mlxVLMVenvPython() string {
+	serverPath := findExecutable("mlx_vlm.server")
+	if serverPath != "" {
+		pythonPath := filepath.Join(filepath.Dir(serverPath), "python")
+		if info, err := os.Stat(pythonPath); err == nil && !info.IsDir() && info.Mode()&0111 != 0 {
+			return pythonPath
+		}
+	}
+	home, _ := os.UserHomeDir()
+	pythonPath := filepath.Join(home, ".local", "pipx", "venvs", "mlx-vlm", "bin", "python")
+	if info, err := os.Stat(pythonPath); err == nil && !info.IsDir() && info.Mode()&0111 != 0 {
+		return pythonPath
+	}
+	return findExecutable("python3")
+}
+
+func embeddingServerScriptPath() string {
+	exe, err := os.Executable()
+	if err == nil {
+		candidates := []string{
+			filepath.Join(filepath.Dir(exe), "..", "Resources", "scripts", "embedding_server.py"),
+			filepath.Join(filepath.Dir(exe), "scripts", "embedding_server.py"),
+		}
+		for _, candidate := range candidates {
+			if info, err := os.Stat(candidate); err == nil && !info.IsDir() {
+				if abs, err := filepath.Abs(candidate); err == nil {
+					return abs
+				}
+				return candidate
+			}
+		}
+	}
+	candidates := []string{
+		filepath.Join("scripts", "embedding_server.py"),
+		filepath.Join(".", "scripts", "embedding_server.py"),
+	}
+	for _, candidate := range candidates {
+		if info, err := os.Stat(candidate); err == nil && !info.IsDir() {
+			if abs, err := filepath.Abs(candidate); err == nil {
+				return abs
+			}
 			return candidate
 		}
 	}

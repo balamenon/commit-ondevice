@@ -106,6 +106,11 @@ if [[ -f "scripts/start-mlx-gemma.sh" ]]; then
     cp "scripts/start-mlx-gemma.sh" "${APP_BUNDLE}/Contents/Resources/scripts/"
     chmod +x "${APP_BUNDLE}/Contents/Resources/scripts/start-mlx-gemma.sh"
 fi
+if [[ -f "scripts/embedding_server.py" ]]; then
+    mkdir -p "${APP_BUNDLE}/Contents/Resources/scripts"
+    cp "scripts/embedding_server.py" "${APP_BUNDLE}/Contents/Resources/scripts/"
+    chmod +x "${APP_BUNDLE}/Contents/Resources/scripts/embedding_server.py"
+fi
 
 echo "  Done"
 echo ""
