@@ -396,21 +396,41 @@ func (c *Client) SendWelcomeMessages(ctx context.Context, onStage func(stage str
 }
 
 func (c *Client) isSelfChat(evt *events.Message) bool {
-	chat := evt.Info.Chat
-	sender := evt.Info.Sender
+	chat := normalizeUserJID(evt.Info.Chat)
 
-	// Old format: chat is your phone number @s.whatsapp.net
-	ownJID := c.GetOwnJID()
-	if !ownJID.IsEmpty() && chat.User == ownJID.User {
+	if sameUserJID(chat, c.GetOwnJID()) {
 		return true
 	}
 
-	// New LID format: self-chat is your LID @lid, sender LID matches chat
-	if chat.Server == types.HiddenUserServer && sender.User == chat.User {
-		return true
-	}
+	return sameUserJID(chat, c.GetOwnLID())
+}
 
-	return false
+func sameUserJID(a, b types.JID) bool {
+	a = normalizeUserJID(a)
+	b = normalizeUserJID(b)
+	return a.User != "" && a.User == b.User && a.Server == b.Server
+}
+
+func normalizeUserJID(jid types.JID) types.JID {
+	jid = jid.ToNonAD()
+	switch jid.Server {
+	case types.HostedServer:
+		jid.Server = types.DefaultUserServer
+	case types.HostedLIDServer:
+		jid.Server = types.HiddenUserServer
+	}
+	return jid
+}
+
+func (c *Client) GetOwnLID() types.JID {
+	c.mu.RLock()
+	client := c.wa
+	c.mu.RUnlock()
+
+	if client == nil || client.Store == nil {
+		return types.JID{}
+	}
+	return client.Store.LID
 }
 
 func (c *Client) GetOwnJID() types.JID {
@@ -418,7 +438,7 @@ func (c *Client) GetOwnJID() types.JID {
 	client := c.wa
 	c.mu.RUnlock()
 
-	if client == nil || client.Store.ID == nil {
+	if client == nil || client.Store == nil || client.Store.ID == nil {
 		return types.JID{}
 	}
 	return *client.Store.ID

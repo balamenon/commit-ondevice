@@ -3,14 +3,17 @@ package whatsapp
 import (
 	"context"
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/msfoundry/commit/store"
+	"go.mau.fi/whatsmeow/types"
 	"go.mau.fi/whatsmeow/types/events"
 )
 
 func (c *Client) handleBotCommand(ctx context.Context, evt *events.Message) bool {
-	if !evt.Info.IsFromMe {
+	isSelfChat := c.isSelfChat(evt)
+	if !evt.Info.IsFromMe && !isSelfChat {
 		return false
 	}
 
@@ -25,17 +28,21 @@ func (c *Client) handleBotCommand(ctx context.Context, evt *events.Message) bool
 	if strings.HasPrefix(lower, "@find") {
 		query := strings.TrimSpace(text[5:]) // preserve original case
 		if query == "" {
-			_ = c.SendMessage(ctx, evt.Info.Chat, "Usage: @find <your question>\n\nExamples:\n@find what did I tell Aakrit about meeting next week?\n@find when did Steve say he'd finish the project?")
+			c.sendBotReply(ctx, evt, "Usage: @find <your question>\n\nExamples:\n@find what did I tell Aakrit about meeting next week?\n@find when did Steve say he'd finish the project?")
+			return true
+		}
+		if c.findHandler == nil {
+			c.sendBotReply(ctx, evt, "Search is not ready yet. Try again after Commit finishes starting up.")
 			return true
 		}
 		go func() {
-			_ = c.SendMessage(ctx, evt.Info.Chat, "🔍 Searching...")
+			c.sendBotReply(ctx, evt, "🔍 Searching...")
 			answer, err := c.findHandler.FindAnswer(ctx, query)
 			if err != nil {
-				_ = c.SendMessage(ctx, evt.Info.Chat, fmt.Sprintf("Search error: %v", err))
+				c.sendBotReply(ctx, evt, fmt.Sprintf("Search error: %v", err))
 				return
 			}
-			_ = c.SendMessage(ctx, evt.Info.Chat, answer)
+			c.sendBotReply(ctx, evt, answer)
 		}()
 		return true
 	}
@@ -45,13 +52,13 @@ func (c *Client) handleBotCommand(ctx context.Context, evt *events.Message) bool
 		query := strings.TrimSpace(strings.TrimPrefix(lower, "@commit"))
 		response := c.cmdContextPull(evt, query)
 		if response != "" {
-			_ = c.SendMessage(ctx, evt.Info.Chat, response)
+			c.sendBotReply(ctx, evt, response)
 		}
 		return true
 	}
 
 	// Self-chat commands only
-	if !c.isSelfChat(evt) {
+	if !isSelfChat {
 		return false
 	}
 
@@ -80,9 +87,40 @@ func (c *Client) handleBotCommand(ctx context.Context, evt *events.Message) bool
 	}
 
 	if response != "" {
-		_ = c.SendMessage(ctx, evt.Info.Chat, response)
+		c.sendBotReply(ctx, evt, response)
 	}
 	return true
+}
+
+func (c *Client) sendBotReply(ctx context.Context, evt *events.Message, text string) {
+	if strings.TrimSpace(text) == "" {
+		return
+	}
+
+	target := c.botReplyTarget(evt)
+	if target.IsEmpty() {
+		log.Println("bot reply skipped: no target JID")
+		return
+	}
+
+	if err := c.SendMessage(ctx, target, text); err != nil {
+		log.Printf("bot reply error to %s: %v", target, err)
+	}
+}
+
+func (c *Client) botReplyTarget(evt *events.Message) types.JID {
+	if c.isSelfChat(evt) {
+		ownJID := c.GetOwnJID()
+		if !ownJID.IsEmpty() {
+			return types.NewJID(ownJID.User, types.DefaultUserServer)
+		}
+		ownLID := c.GetOwnLID()
+		if !ownLID.IsEmpty() {
+			return types.NewJID(ownLID.User, types.HiddenUserServer)
+		}
+	}
+
+	return evt.Info.Chat
 }
 
 func (c *Client) cmdContextPull(evt *events.Message, query string) string {
