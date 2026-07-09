@@ -358,7 +358,7 @@ OpenAI-compatible transport layer.
 ## Build, run, and test
 
 The module path is `github.com/msfoundry/commit`. `go.mod` currently declares Go
-1.26.3. The README's older “Go 1.22+” statement may not be sufficient for the
+1.26.3. The README's older "Go 1.22+" statement may not be sufficient for the
 current module, so follow `go.mod`.
 
 ```bash
@@ -466,7 +466,7 @@ and an upgrade from the previous schema version.
 - The dashboard is a large single HTML file. Search by API route or element ID
   and make narrow edits.
 - SQLite migrations deliberately ignore some duplicate-column errors for
-  compatibility. Do not “clean up” old migrations without testing real upgrade
+  compatibility. Do not "clean up" old migrations without testing real upgrade
   paths.
 - The server binds all interfaces, despite being a local-first product.
 - `/api/resolution-sweep` is public in route registration.
